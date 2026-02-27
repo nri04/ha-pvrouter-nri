@@ -1,166 +1,188 @@
+/**
+ * PvRouter NRI - Carte Lovelace
+ * 
+ * Configuration YAML :
+ * 
+ * type: custom:pvrouter-card
+ * entity_prefix: pvrouter
+ * outputs:
+ *   - name: "Ballon 1"
+ *     icon: "ballon.png"     # fichier dans www/pvrouter/
+ *     enabled: true
+ *   - name: "Ballon 2"
+ *     icon: "ballon.png"
+ *     enabled: true
+ *   - name: "Piscine"
+ *     icon: "charge.png"
+ *     enabled: false         # masquee si false
+ */
+
+const ICONS = {
+  ballon:  "ballon.png",
+  house:   "house.png",
+  solar:   "solar.png",
+  charge:  "charge.png",
+  battery: "battery.png",
+  router:  "pvrouter.png",
+};
+
 class PvRouterCard extends HTMLElement {
 
   static getStubConfig() {
     return {
       entity_prefix: "pvrouter",
-      output1_name: "Ballon 1",
-      output2_name: "Ballon 2",
-      output3_name: "Maison",
-      images_path: "/local/pvrouter"
+      outputs: [
+        { name: "Ballon 1", icon: "ballon.png", enabled: true },
+        { name: "Ballon 2", icon: "ballon.png", enabled: true },
+      ]
     };
   }
 
-  setConfig(config) { this.config = config; }
+  setConfig(config) {
+    this.config = config;
+  }
+
   getCardSize() { return 5; }
 
   set hass(hass) {
-    const p    = this.config?.entity_prefix || "pvrouter";
-    const n1   = this.config?.output1_name  || "Ballon 1";
-    const n2   = this.config?.output2_name  || "Ballon 2";
-    const n3   = this.config?.output3_name  || "Maison";
-    const imgs = this.config?.images_path   || "/local/pvrouter";
+    const p       = this.config?.entity_prefix || "pvrouter";
+    const outputs = this.config?.outputs || [
+      { name: "Sortie 1", icon: "ballon.png", enabled: true },
+      { name: "Sortie 2", icon: "ballon.png", enabled: true },
+    ];
+    const imgs = "/pvrouter-nri";
 
-    const get = (key) => {
+    // ---- Helpers ----
+    const getF = (key) => {
       const s = hass.states[`sensor.${p}_${key}`];
-      if (!s || s.state === "unavailable" || s.state === "unknown") return null;
+      if (!s || ["unavailable","unknown","none"].includes(s.state)) return null;
       return parseFloat(s.state);
     };
-
-    const getStr = (key) => {
+    const getS = (key) => {
       const s = hass.states[`sensor.${p}_${key}`];
-      if (!s) return null;
-      return s.state;
+      return s ? s.state : null;
     };
-
     const fmt = (v) => {
       if (v === null) return "&mdash;";
-      if (Math.abs(v) >= 1000) return (v / 1000).toFixed(2) + " kW";
-      return v.toFixed(0) + " W";
+      if (Math.abs(v) >= 1000) return (v/1000).toFixed(2) + " kW";
+      return Math.round(v) + " W";
     };
 
-    // Valeurs
-    const prod  = get("production");
-    const eff   = get("efficiency");
-    const pout  = get("pout");
-    const pin   = get("pin");
+    // ---- Valeurs ----
+    const prod = getF("production");
+    const eff  = getF("efficiency");
+    const pin  = getF("pin");
+    const pout = getF("pout");
+    const bal  = getS("ballon_actif");
 
-    // Sortie 1 — logique : OFF=0 / partiel=P1 / sature=LOAD1
-    const s1on  = getStr("statusout1") === "True";
-    const s1sat = getStr("load1satured") === "True";
-    const p1    = get("p1");
-    const l1    = get("load_1");
-    const bal   = getStr("ballonactif");
-    const pwr1  = !s1on ? 0 : s1sat ? l1 : p1;
+    // Sorties — index 0 = sortie 1, index 1 = sortie 2
+    const outData = [
+      { p: getF("p1"), load: getF("load_1"), on: getS("statusout1") === "True", sat: getS("load1satured") === "True" },
+      { p: getF("p2"), load: getF("load_2"), on: getS("statusout2") === "True", sat: getS("load2satured") === "True" },
+    ];
 
-    // Sortie 2 — logique : OFF=0 / partiel=P2 / sature=LOAD2
-    const s2on  = getStr("statusout2") === "True";
-    const s2sat = getStr("load2satured") === "True";
-    const p2    = get("p2");
-    const l2    = get("load_2");
-    const pwr2  = !s2on ? 0 : s2sat ? l2 : p2;
+    const pwr = (o) => !o.on ? 0 : o.sat ? o.load : o.p;
 
-    // Reseau (PIN positif = import, negatif = export)
-    const grid  = pin;
+    // Reseau
+    const importing = pin !== null && pin > 5;
+    const exporting = pin !== null && pin < -5;
+    const gridColor = importing ? "#e74c3c" : exporting ? "#2ecc71" : "#888";
+    const gridArrow = importing ? "right" : "left";
 
-    // Fleches actives si puissance > 5W
-    const on   = (v) => v !== null && Math.abs(v) > 5;
-    const cls  = (v, dir) => on(v) ? `arrow arrow-${dir} flowing` : `arrow arrow-${dir} inactive`;
+    // ---- Fleches ----
+    const arrowH = (v, dir, color) => {
+      const active = v !== null && Math.abs(v) > 5;
+      const cls = active ? `arrow flowing-${dir}` : "arrow inactive";
+      return `<span class="${cls}" style="${active ? '--ac:'+color : ''}">${dir === 'left' ? '&#9664;' : '&#9654;'}</span>`;
+    };
+    const arrowV = (v) => {
+      const active = v !== null && v > 5;
+      const cls = active ? "arrow flowing-down" : "arrow inactive";
+      return `<span class="${cls}">&#9660;</span>`;
+    };
 
-    // Ballon actif
-    const ballonLabel = bal === "0" ? `<span class="bal-badge">B0</span>` : bal === "1" ? `<span class="bal-badge">B1</span>` : "";
+    // ---- Sorties HTML ----
+    const enabledOutputs = outputs
+      .map((out, i) => ({ ...out, idx: i }))
+      .filter(out => out.enabled !== false);
 
-    // Couleur reseau
-    const gridColor = (grid !== null && grid > 0) ? "#e74c3c" : "#2ecc71";
-    const gridLabel = grid !== null ? (grid > 0 ? "Import" : "Export") : "";
+    const outputsHTML = enabledOutputs.map((out) => {
+      const od   = outData[out.idx] || { p: null, load: null, on: false, sat: false };
+      const pw   = pwr(od);
+      const col  = od.on ? "#03a9f4" : "#666";
+      const icon = out.icon || "ballon.png";
+      const badgeHTML = out.idx === 0 && bal !== null
+        ? `<div class="badge">B${bal}</div>` : "";
+      return `
+        <div class="pv-row">
+          <div class="pv-device">
+            <img src="${imgs}/${icon}" class="pv-img">
+            <div class="pv-name">${out.name}${badgeHTML}</div>
+            <div class="pv-val" style="color:${col}">${fmt(pw)}</div>
+          </div>
+          <div class="arrows-h">
+            ${arrowH(pw, 'left', '#03a9f4')}
+            ${arrowH(pw, 'left', '#03a9f4')}
+          </div>
+        </div>`;
+    }).join('');
 
+    // ---- Rendu ----
     this.innerHTML = `
       <ha-card>
-        <div class="pv-header">PvRouter NRI &mdash; Live</div>
-        <div class="pv-layout">
+        <div class="pv-title">PvRouter NRI &mdash; Live</div>
+        <div class="pv-grid">
 
-          <!-- COLONNE GAUCHE : sorties 1 et 2 -->
-          <div class="pv-col-left">
-
-            <!-- Sortie 1 -->
-            <div class="pv-row">
-              <div class="pv-device">
-                <img src="${imgs}/ballon.png" class="pv-img">
-                <div class="pv-dname">${n1} ${ballonLabel}</div>
-                <div class="pv-dval" style="color:${s1on ? '#03a9f4' : '#888'}">${fmt(pwr1)}</div>
-              </div>
-              <div class="pv-arrows-h">
-                <div class="${cls(pwr1, 'left')}">&#9664;</div>
-                <div class="${cls(pwr1, 'left')}">&#9664;</div>
-              </div>
-            </div>
-
-            <!-- Sortie 2 -->
-            <div class="pv-row">
-              <div class="pv-device">
-                <img src="${imgs}/ballon.png" class="pv-img">
-                <div class="pv-dname">${n2}</div>
-                <div class="pv-dval" style="color:${s2on ? '#03a9f4' : '#888'}">${fmt(pwr2)}</div>
-              </div>
-              <div class="pv-arrows-h">
-                <div class="${cls(pwr2, 'left')}">&#9664;</div>
-                <div class="${cls(pwr2, 'left')}">&#9664;</div>
-              </div>
-            </div>
-
+          <!-- GAUCHE : sorties -->
+          <div class="pv-left">
+            ${outputsHTML}
           </div>
 
-          <!-- COLONNE CENTRE : solaire + routeur + efficacite -->
-          <div class="pv-col-center">
-
-            <!-- Solaire en haut -->
-            <div class="pv-device pv-solar">
-              <img src="${imgs}/solar.png" class="pv-img">
-              <div class="pv-dname">Solaire</div>
-              <div class="pv-dval" style="color:#f4c403">${fmt(prod)}</div>
+          <!-- CENTRE : solaire + routeur -->
+          <div class="pv-center">
+            <div class="pv-device">
+              <img src="${imgs}/solar.png" class="pv-img pv-img-lg">
+              <div class="pv-name">Solaire</div>
+              <div class="pv-val" style="color:#f4c403">${fmt(prod)}</div>
             </div>
-
-            <!-- Fleches vers le bas depuis solaire -->
-            <div class="pv-arrows-v">
-              <div class="${cls(prod, 'down')}">&#9660;</div>
-              <div class="${cls(prod, 'down')}">&#9660;</div>
+            <div class="arrows-v">
+              ${arrowV(prod)}
+              ${arrowV(prod)}
             </div>
-
-            <!-- Routeur -->
-            <div class="pv-router-box">
+            <div class="pv-router">
               <img src="${imgs}/pvrouter.png" class="pv-router-img">
-              <div class="pv-eff">${eff !== null ? eff.toFixed(1) + "%" : "&mdash;"}</div>
-              <div class="pv-eff-label">Efficacite</div>
+              <div class="pv-eff-val">${eff !== null ? eff.toFixed(1)+"%" : "&mdash;"}</div>
+              <div class="pv-eff-lbl">Efficacite</div>
             </div>
-
           </div>
 
-          <!-- COLONNE DROITE : maison/reseau et sortie 3 -->
-          <div class="pv-col-right">
+          <!-- DROITE : reseau + pout -->
+          <div class="pv-right">
 
-            <!-- Maison / Reseau -->
+            <!-- Reseau EDF -->
             <div class="pv-row">
-              <div class="pv-arrows-h">
-                <div class="${cls(grid, on(grid) && grid > 0 ? 'right' : 'left')}">&#9654;</div>
-                <div class="${cls(grid, on(grid) && grid > 0 ? 'right' : 'left')}">&#9654;</div>
+              <div class="arrows-h">
+                ${arrowH(pin, gridArrow, gridColor)}
+                ${arrowH(pin, gridArrow, gridColor)}
               </div>
               <div class="pv-device">
                 <img src="${imgs}/house.png" class="pv-img">
-                <div class="pv-dname">${n3}</div>
-                <div class="pv-dval" style="color:${gridColor}">${fmt(grid)}</div>
-                <div class="pv-badge" style="color:${gridColor}">${gridLabel}</div>
+                <div class="pv-name">Reseau</div>
+                <div class="pv-val" style="color:${gridColor}">${fmt(pin)}</div>
+                <div class="pv-sub" style="color:${gridColor}">${importing?"Import":exporting?"Export":""}</div>
               </div>
             </div>
 
             <!-- Pout -->
             <div class="pv-row">
-              <div class="pv-arrows-h">
-                <div class="${cls(pout, 'right')}">&#9654;</div>
-                <div class="${cls(pout, 'right')}">&#9654;</div>
+              <div class="arrows-h">
+                ${arrowH(pout, 'right', '#03a9f4')}
+                ${arrowH(pout, 'right', '#03a9f4')}
               </div>
               <div class="pv-device">
                 <img src="${imgs}/charge.png" class="pv-img">
-                <div class="pv-dname">Sortie</div>
-                <div class="pv-dval" style="color:#03a9f4">${fmt(pout)}</div>
+                <div class="pv-name">Sortie tot.</div>
+                <div class="pv-val" style="color:#03a9f4">${fmt(pout)}</div>
               </div>
             </div>
 
@@ -169,70 +191,62 @@ class PvRouterCard extends HTMLElement {
         </div>
 
         <style>
-          .pv-header { font-size:1em; font-weight:bold; padding:12px 16px 4px; color:var(--primary-text-color); }
+          :host { display:block; }
+          .pv-title { font-weight:bold; padding:12px 16px 6px; font-size:.95em; }
 
-          .pv-layout {
+          .pv-grid {
             display: grid;
             grid-template-columns: 1fr auto 1fr;
-            align-items: center;
             gap: 8px;
-            padding: 8px 12px 16px;
-          }
-
-          .pv-col-left   { display:flex; flex-direction:column; gap:16px; align-items:flex-end; }
-          .pv-col-center { display:flex; flex-direction:column; align-items:center; gap:4px; }
-          .pv-col-right  { display:flex; flex-direction:column; gap:16px; align-items:flex-start; }
-
-          .pv-row { display:flex; align-items:center; gap:6px; }
-
-          .pv-device {
-            display: flex;
-            flex-direction: column;
+            padding: 4px 12px 16px;
             align-items: center;
-            min-width: 70px;
           }
-          .pv-img { width:52px; height:52px; object-fit:contain; }
-          .pv-solar .pv-img { width:58px; height:58px; }
-          .pv-dname { font-size:0.72em; color:var(--secondary-text-color); margin-top:2px; text-align:center; }
-          .pv-dval  { font-size:1em; font-weight:bold; text-align:center; }
-          .pv-badge { font-size:0.65em; text-align:center; }
 
-          .bal-badge {
+          .pv-left   { display:flex; flex-direction:column; gap:14px; align-items:flex-end; }
+          .pv-center { display:flex; flex-direction:column; align-items:center; gap:4px; }
+          .pv-right  { display:flex; flex-direction:column; gap:14px; align-items:flex-start; }
+
+          .pv-row { display:flex; align-items:center; gap:4px; }
+
+          .pv-device { display:flex; flex-direction:column; align-items:center; min-width:68px; }
+          .pv-img    { width:50px; height:50px; object-fit:contain; }
+          .pv-img-lg { width:58px; height:58px; }
+          .pv-name   { font-size:.7em; color:var(--secondary-text-color); margin-top:2px; text-align:center; }
+          .pv-val    { font-size:.95em; font-weight:bold; text-align:center; }
+          .pv-sub    { font-size:.65em; text-align:center; }
+
+          .badge {
             display:inline-block;
             background:#03a9f4;
-            color:white;
+            color:#fff;
             border-radius:4px;
             padding:0 4px;
-            font-size:0.65em;
+            font-size:.65em;
+            margin-left:3px;
             vertical-align:middle;
           }
 
-          .pv-router-box {
-            display:flex;
-            flex-direction:column;
-            align-items:center;
-            border:1px solid #444;
-            border-radius:8px;
-            padding:6px 10px;
+          .pv-router {
+            display:flex; flex-direction:column; align-items:center;
+            border:1px solid #444; border-radius:8px; padding:4px 8px;
           }
-          .pv-router-img { width:80px; height:60px; object-fit:contain; }
-          .pv-eff       { font-size:1em; font-weight:bold; color:var(--primary-text-color); }
-          .pv-eff-label { font-size:0.65em; color:var(--secondary-text-color); }
+          .pv-router-img { width:78px; height:56px; object-fit:contain; }
+          .pv-eff-val { font-size:1em; font-weight:bold; }
+          .pv-eff-lbl { font-size:.65em; color:var(--secondary-text-color); }
 
-          .pv-arrows-h { display:flex; flex-direction:row; gap:2px; align-items:center; }
-          .pv-arrows-v { display:flex; flex-direction:column; gap:2px; align-items:center; }
+          .arrows-h { display:flex; flex-direction:row; gap:1px; align-items:center; }
+          .arrows-v { display:flex; flex-direction:column; gap:1px; align-items:center; }
 
-          .arrow { font-size:1.2em; line-height:1; }
+          .arrow { font-size:1.1em; line-height:1; }
           .inactive { color:#444; }
 
-          /* Animations selon direction */
-          @keyframes flow-left  { 0%,100%{color:#03a9f4;transform:translateX(0)}  50%{color:#7dd4f8;transform:translateX(-3px)} }
-          @keyframes flow-right { 0%,100%{color:#03a9f4;transform:translateX(0)}  50%{color:#7dd4f8;transform:translateX(3px)}  }
-          @keyframes flow-down  { 0%,100%{color:#f4c403;transform:translateY(0)}  50%{color:#fde57a;transform:translateY(3px)}  }
+          @keyframes fl { 0%,100%{opacity:1;transform:translateX(0)} 50%{opacity:.6;transform:translateX(-3px)} }
+          @keyframes fr { 0%,100%{opacity:1;transform:translateX(0)} 50%{opacity:.6;transform:translateX(3px)}  }
+          @keyframes fd { 0%,100%{opacity:1;transform:translateY(0)} 50%{opacity:.6;transform:translateY(3px)}  }
 
-          .flowing.arrow-left  { animation:flow-left  0.8s ease-in-out infinite; }
-          .flowing.arrow-right { animation:flow-right 0.8s ease-in-out infinite; }
-          .flowing.arrow-down  { animation:flow-down  0.8s ease-in-out infinite; }
+          .flowing-left  { color:var(--ac,#03a9f4); animation:fl .8s ease-in-out infinite; }
+          .flowing-right { color:var(--ac,#03a9f4); animation:fr .8s ease-in-out infinite; }
+          .flowing-down  { color:#f4c403;            animation:fd .8s ease-in-out infinite; }
         </style>
       </ha-card>`;
   }
@@ -240,4 +254,4 @@ class PvRouterCard extends HTMLElement {
 
 customElements.define("pvrouter-card", PvRouterCard);
 window.customCards = window.customCards || [];
-window.customCards.push({ type: "pvrouter-card", name: "PvRouter NRI", description: "Flux de puissance PvRouter en temps reel", preview: false });
+window.customCards.push({ type:"pvrouter-card", name:"PvRouter NRI", description:"Flux de puissance PvRouter en temps reel", preview:false });
