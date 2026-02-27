@@ -4,8 +4,7 @@
   "version": "1.0.0",
   "config_flow": true,
   "iot_class": "local_polling",
-  "mqtt": {
-    "platforms": ["sensor", "switch", "button"]
-  },
+  "dependencies": ["mqtt"],
+  "codeowners": ["@nri04"],
   "issue_tracker": "https://github.com/nri04/ha-pvrouter-nri/issues"
 }
