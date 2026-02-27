@@ -48,7 +48,6 @@ class PvRouterCard extends HTMLElement {
       return Math.round(v) + " W";
     };
 
-    // --- Capteurs ---
     const prod  = getF("production");
     const eff   = getF("efficiency");
     const pin   = getF("pin");
@@ -67,7 +66,6 @@ class PvRouterCard extends HTMLElement {
     const homeW  = homekW !== null ? homekW * 1000 : null;
 
     const dual = load !== null && load > 0 && load0 !== null && load0 > 0;
-
     const s1_0_active = s1on && (!dual || bal === "0");
     const pwr_1_0 = !s1_0_active ? 0 : s1sat ? (dual ? load : load1)??0 : p1??0;
     const s1_1_active = s1on && dual && bal === "1";
@@ -77,12 +75,11 @@ class PvRouterCard extends HTMLElement {
     const pwrFor = (id) => id==="1"?pwr_1_0 : id==="1.1"?pwr_1_1 : id==="2"?pwr_2 : 0;
     const onFor  = (id) => id==="1"?s1_0_active : id==="1.1"?s1_1_active : id==="2"?s2on : false;
 
-    const importing = pin !== null && pin > 5;
-    const exporting = pin !== null && pin < -5;
-    const gridColor = importing ? "#e74c3c" : exporting ? "#2ecc71" : "#888";
+    const importing  = pin !== null && pin > 5;
+    const exporting  = pin !== null && pin < -5;
+    const gridColor  = importing ? "#e74c3c" : exporting ? "#2ecc71" : "#888";
     const homeActive = homeW !== null && homeW > 5;
 
-    // --- Helpers flèches ---
     const arrsL = (v, color) => {
       if (v === null || Math.abs(v) <= 5) return `<span class="ph"></span>`;
       return `<span class="arr al" style="--c:${color}">&#9664;</span><span class="arr al" style="--c:${color}">&#9664;</span>`;
@@ -96,23 +93,22 @@ class PvRouterCard extends HTMLElement {
       return `<span class="arr ad">&#9660;</span><span class="arr ad">&#9660;</span>`;
     };
 
-    // Import : courant vient du réseau vers le routeur → flèche pointe à GAUCHE ◀◀
-    // Export : courant va du routeur vers le réseau → flèche pointe à DROITE ▶▶
+    // import = courant vient du réseau → flèches ◀◀ (vers la gauche / vers le routeur)
+    // export = courant va vers le réseau → flèches ▶▶ (vers la droite)
     const gridArrows = importing ? arrsL(pin, gridColor) : arrsR(Math.abs(pin??0), gridColor);
 
-    // --- Sorties actives ---
     const enabledOuts = outs.filter(o => o.enabled !== false);
-    const nOuts = enabledOuts.length || 1;
+    const nOuts = Math.max(enabledOuts.length, 1);
+    // Hauteur fixe par sortie pour que les 3 colonnes restent alignées
+    const rowH  = 100;
+    const totalH = nOuts * rowH + (nOuts - 1) * 10;
 
-    // Réseau s'aligne sur la première sortie, maison sur la dernière
-    // On utilise CSS grid avec nOuts lignes
-
-    const outRows = enabledOuts.map((out, i) => {
+    const outsHTML = enabledOuts.map((out) => {
       const pw   = pwrFor(out.id);
       const isOn = onFor(out.id);
       const col  = isOn && pw > 5 ? "#03a9f4" : "#777";
       return `
-        <div class="out-item">
+        <div class="out-row">
           <div class="dev-box" style="border-color:${isOn && pw > 5 ? '#03a9f4' : '#444'}">
             <img src="${base}/${out.icon||'ballon.png'}" class="dev-img">
             <div class="dev-name">${out.name}</div>
@@ -122,20 +118,15 @@ class PvRouterCard extends HTMLElement {
         </div>`;
     }).join('');
 
-    // Centre : solaire + flèches + routeur — centré verticalement sur toute la hauteur
-    // Droite : réseau en haut (row 1), maison en bas (row nOuts)
-
     this.innerHTML = `
       <ha-card>
         <div class="pv-title">PvRouter NRI — Live</div>
-        <div class="pv-grid" style="--nrows:${nOuts}">
+        <div class="pv-wrap">
 
-          <!-- COLONNE GAUCHE : sorties -->
-          <div class="col-left">
-            ${outRows}
-          </div>
+          <!-- GAUCHE -->
+          <div class="col-left" style="height:${totalH}px">${outsHTML}</div>
 
-          <!-- COLONNE CENTRE : solaire + routeur -->
+          <!-- CENTRE : toujours au centre, indépendant du nombre de sorties -->
           <div class="col-center">
             <div class="dev-box solar-box">
               <img src="${base}/solar.png" class="dev-img dev-lg">
@@ -150,11 +141,9 @@ class PvRouterCard extends HTMLElement {
             </div>
           </div>
 
-          <!-- COLONNE DROITE : réseau haut + maison bas -->
-          <div class="col-right">
-
-            <!-- Réseau : collé en haut -->
-            <div class="right-top">
+          <!-- DROITE : réseau collé en haut, maison collée en bas -->
+          <div class="col-right" style="height:${totalH}px">
+            <div class="right-item">
               <div class="arrs-h">${gridArrows}</div>
               <div class="dev-box" style="border-color:${Math.abs(pin??0)>5?gridColor:'#444'}">
                 <img src="${base}/reseau.png" class="dev-img">
@@ -163,9 +152,7 @@ class PvRouterCard extends HTMLElement {
                 <div class="dev-sub" style="color:${gridColor}">${importing?"Import":exporting?"Export":""}</div>
               </div>
             </div>
-
-            <!-- Maison : collée en bas -->
-            <div class="right-bot">
+            <div class="right-item">
               <div class="arrs-h">${arrsR(homeW,'#f39c12')}</div>
               <div class="dev-box" style="border-color:${homeActive?'#f39c12':'#444'}">
                 <img src="${base}/house.png" class="dev-img">
@@ -173,7 +160,6 @@ class PvRouterCard extends HTMLElement {
                 <div class="dev-val" style="color:${homeActive?'#f39c12':'#777'}">${fmt(homeW)}</div>
               </div>
             </div>
-
           </div>
 
         </div>
@@ -181,30 +167,30 @@ class PvRouterCard extends HTMLElement {
         <style>
           .pv-title { font-weight:bold; font-size:.95em; padding:12px 16px 4px; }
 
-          .pv-grid {
+          /* Grid fixe 3 colonnes — ne s'effondre jamais */
+          .pv-wrap {
             display: grid;
-            grid-template-columns: auto auto auto;
-            align-items: stretch;
-            padding: 6px 10px 16px;
-            gap: 0 6px;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            padding: 8px 10px 16px;
+            gap: 0 8px;
           }
 
-          /* GAUCHE */
+          /* GAUCHE — hauteur calculée, sorties réparties uniformément */
           .col-left {
             display: flex;
             flex-direction: column;
             justify-content: space-around;
             align-items: flex-end;
-            gap: 10px;
           }
-          .out-item {
+          .out-row {
             display: flex;
             flex-direction: row;
             align-items: center;
             gap: 4px;
           }
 
-          /* CENTRE */
+          /* CENTRE — toujours centré verticalement */
           .col-center {
             display: flex;
             flex-direction: column;
@@ -214,32 +200,28 @@ class PvRouterCard extends HTMLElement {
             flex-shrink: 0;
           }
 
-          /* DROITE */
+          /* DROITE — hauteur identique à gauche, réseau haut / maison bas */
           .col-right {
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             align-items: flex-start;
-            gap: 10px;
           }
-          .right-top {
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            gap: 4px;
-          }
-          .right-bot {
+          .right-item {
             display: flex;
             flex-direction: row;
             align-items: center;
             gap: 4px;
           }
 
-          /* Boites */
           .dev-box {
-            display: flex; flex-direction: column; align-items: center;
-            border: 2px solid #444; border-radius: 10px;
-            padding: 6px 10px; min-width: 70px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border: 2px solid #444;
+            border-radius: 10px;
+            padding: 6px 10px;
+            min-width: 70px;
             background: var(--card-background-color, #1c1c1c);
           }
           .solar-box  { border-color: #f4c403 !important; }
