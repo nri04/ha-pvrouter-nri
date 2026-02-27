@@ -99,9 +99,9 @@ class PvRouterCard extends HTMLElement {
 
     const enabledOuts = outs.filter(o => o.enabled !== false);
     const nOuts = Math.max(enabledOuts.length, 1);
-    // Hauteur fixe par sortie pour que les 3 colonnes restent alignées
-    const rowH  = 100;
-    const totalH = nOuts * rowH + (nOuts - 1) * 10;
+    // Hauteur fixe par sortie — minimum 220px pour que réseau et maison soient bien séparés
+    const rowH   = 100;
+    const totalH = Math.max(nOuts * rowH + (nOuts - 1) * 10, 220);
 
     const outsHTML = enabledOuts.map((out) => {
       const pw   = pwrFor(out.id);
