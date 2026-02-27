@@ -14,7 +14,10 @@ PLATFORMS = ["sensor", "switch", "button"]
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     www_path = hass.config.path("custom_components/pvrouter/www")
     if os.path.isdir(www_path):
-        hass.http.register_static_path("/pvrouter-nri/static", www_path, True)
+        from homeassistant.components.http import StaticPathConfig
+        await hass.http.async_register_static_paths([
+            StaticPathConfig("/pvrouter-nri/static", www_path, True)
+        ])
 
     prefix = entry.data.get(CONF_TOPIC_PREFIX)
     coordinator = PvRouterCoordinator(hass, prefix)
