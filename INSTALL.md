@@ -38,6 +38,7 @@ config/custom_components/pvrouter/
     solar.png
     ballon.png
     house.png
+    reseau.png
     charge.png
     battery.png
     pvrouter.png
@@ -53,22 +54,21 @@ Elle apparaît dans le sélecteur de cartes sous **"PvRouter NRI"**.
 
 ### Ajout manuel (YAML)
 
-Dans un tableau de bord, ajouter une carte manuelle :
-
 ```yaml
 type: custom:pvrouter-card
 entity_prefix: pvrouter
+home_entity: "sensor.home_conso_live"
 outputs:
   - id: "1"
-    name: "Ballon Cuisine"
+    name: "Ballon 1"
     icon: "ballon.png"
     enabled: true
   - id: "1.1"
-    name: "Ballon SDB"
+    name: "Ballon 2"
     icon: "ballon.png"
     enabled: false
   - id: "2"
-    name: "Borne VE"
+    name: "Sortie 2"
     icon: "charge.png"
     enabled: false
 ```
@@ -79,49 +79,67 @@ outputs:
 
 | Paramètre | Type | Défaut | Description |
 |-----------|------|--------|-------------|
-| `entity_prefix` | string | `pvrouter` | Préfixe des entités HA (doit correspondre au MQTT prefix) |
-| `outputs` | liste | voir ci-dessous | Configuration des sorties affichées |
+| `entity_prefix` | string | `pvrouter` | Préfixe des entités HA |
+| `home_entity` | string | `sensor.home_conso_live` | Entité conso maison (en kW) |
+| `outputs` | liste | — | Configuration des sorties |
 
-### Paramètres par sortie (`outputs`)
+### Paramètres par sortie
 
 | Paramètre | Type | Défaut | Description |
 |-----------|------|--------|-------------|
-| `id` | string | — | **Obligatoire.** Identifiant de la sortie : `"1"`, `"1.1"` ou `"2"` |
+| `id` | string | — | **Obligatoire** : `"1"`, `"1.1"` ou `"2"` |
 | `name` | string | `"Sortie X"` | Nom affiché sous l'icône |
-| `icon` | string | `"ballon.png"` | Nom du fichier image dans le dossier `www/` |
-| `enabled` | boolean | `true` | `false` pour masquer la sortie sans la supprimer |
+| `icon` | string | `"ballon.png"` | Fichier image dans `www/` |
+| `enabled` | boolean | `true` | `false` pour masquer la sortie |
 
-### IDs de sortie disponibles
+### IDs de sortie
 
-| ID | Sortie physique | Données utilisées | Actif quand |
-|----|----------------|-------------------|-------------|
-| `"1"` | Sortie 1 — appareil 0 | P1 / LOAD / LOAD1 | statusout1=True ET ballon_actif=0 (ou mode simple) |
-| `"1.1"` | Sortie 1 — appareil 1 | P1 / LOAD0 | statusout1=True ET ballon_actif=1 |
+| ID | Sortie physique | Données | Actif quand |
+|----|----------------|---------|-------------|
+| `"1"` | Sortie 1 — appareil 0 | P1 / LOAD10 / LOAD1 | statusout1=True ET ballon=0 (ou mode simple) |
+| `"1.1"` | Sortie 1 — appareil 1 | P1 / LOAD11 | statusout1=True ET ballon=1 |
 | `"2"` | Sortie 2 | P2 / LOAD2 | statusout2=True |
 
-> **Note :** Les IDs `"1"` et `"1.1"` partagent la même sortie physique.
 > Le mode dual (2 appareils sur sortie 1) est détecté automatiquement
-> si les capteurs `LOAD10` et `LOAD11` sont présents et > 0.
+> si `LOAD10` et `LOAD11` sont présents et > 0 dans le JSON MQTT.
+
+### Logique de calcul puissance affichée
+
+| STATUS | SATURED | Valeur affichée |
+|--------|---------|-----------------|
+| False | — | 0 W |
+| True | False | P1 ou P2 (routage partiel) |
+| True | True | LOAD (charge max atteinte) |
+
+### Flèches animées
+
+| Situation | Direction | Couleur |
+|-----------|-----------|---------|
+| Sortie active | ◀◀ vers l'appareil | Bleu |
+| Import réseau | ◀◀ vers le routeur | Rouge |
+| Export réseau | ▶▶ vers le réseau | Vert |
+| Conso maison | ▶▶ vers la maison | Orange |
+| Solaire → routeur | ▼▼ vers le bas | Jaune |
+| Valeur ≤ 5W | masquée | — |
 
 ---
 
 ## 6. Icônes disponibles
-
-Les icônes suivantes sont fournies dans `www/` :
 
 | Fichier | Usage suggéré |
 |---------|---------------|
 | `ballon.png` | Chauffe-eau, ballon d'eau chaude |
 | `charge.png` | Borne de recharge véhicule électrique |
 | `house.png` | Maison, consommation générale |
+| `reseau.png` | Réseau électrique EDF |
 | `battery.png` | Batterie de stockage |
 | `solar.png` | Panneaux solaires |
-| `pvrouter.png` | Routeur PV (affiché au centre) |
+| `pvrouter.png` | Routeur PV (centre de la carte) |
 
 ### Ajouter une icône personnalisée
 
-1. Déposer votre fichier `.png` dans `config/custom_components/pvrouter/www/`
-2. Référencer son nom dans le YAML de la carte :
+1. Déposer votre `.png` dans `config/custom_components/pvrouter/www/`
+2. Référencer son nom dans le YAML :
 ```yaml
 outputs:
   - id: "2"
@@ -141,7 +159,8 @@ outputs:
 | `sensor.pvrouter_vin` | VIN | V | Tension entrée |
 | `sensor.pvrouter_cin` | CIN | A | Courant entrée |
 | `sensor.pvrouter_pin` | PIN | W | Puissance entrée réseau |
-| `sensor.pvrouter_inject` | INJECT | kWh | Énergie injectée |
+| `sensor.pvrouter_inject` | INJECT | kWh | Énergie injectée totale |
+| `sensor.pvrouter_inject_i` | INJECT_I | W | Puissance injection instantanée |
 | `sensor.pvrouter_cout` | COUT | A | Courant sortie |
 | `sensor.pvrouter_pout` | POUT | W | Puissance sortie totale |
 | `sensor.pvrouter_p1` | P1 | W | Puissance routée sortie 1 |
@@ -152,20 +171,33 @@ outputs:
 | `sensor.pvrouter_load_11` | LOAD11 | W | Charge max appareil 1 (sortie 1) |
 | `sensor.pvrouter_saved_power` | SAVED_POWER | kWh | Énergie économisée |
 | `sensor.pvrouter_total_power` | TOTAL_POWER | kWh | Énergie totale routée |
-| `sensor.pvrouter_production` | PROD | W | Production solaire |
+| `sensor.pvrouter_total_s` | TOT_S | kWh | Énergie totale (compteur S) |
+| `sensor.pvrouter_production` | PROD | W | Production solaire instantanée |
 | `sensor.pvrouter_total_production` | TOT_PROD | kWh | Production totale |
+| `sensor.pvrouter_ev_power` | EVPOWER | W | Puissance borne VE |
 | `sensor.pvrouter_efficiency` | EFF | % | Efficacité du routeur |
 | `sensor.pvrouter_temp_1` | TEMP1 | °C | Température sonde 1 |
-| `sensor.pvrouter_temp_2` | TEMP2 | °C | Température sonde 2 |
-| `sensor.pvrouter_status_out_1` | STATUS_OUT1 | — | Statut sortie 1 (True/False) |
-| `sensor.pvrouter_status_out_2` | STATUS_OUT2 | — | Statut sortie 2 (True/False) |
-| `sensor.pvrouter_load_1_satured` | LOAD1_SATURED | — | Sortie 1 saturée (True/False) |
-| `sensor.pvrouter_load_2_satured` | LOAD2_SATURED | — | Sortie 2 saturée (True/False) |
+| `sensor.pvrouter_temp_2` | TEMP2 | °C | Température sonde 2 (si présente) |
+| `sensor.pvrouter_temp_ref` | REF_T | °C | Température de référence |
+| `sensor.pvrouter_temp_interne` | T_RTC | °C | Température interne du routeur |
+| `sensor.pvrouter_status_out_1` | STATUS_OUT1 | — | Statut sortie 1 |
+| `sensor.pvrouter_status_out_2` | STATUS_OUT2 | — | Statut sortie 2 |
+| `sensor.pvrouter_load_1_satured` | LOAD1_SATURED | — | Sortie 1 saturée |
+| `sensor.pvrouter_load_2_satured` | LOAD2_SATURED | — | Sortie 2 saturée |
 | `sensor.pvrouter_ballon_actif` | BALLON | — | Appareil actif sur sortie 1 (0 ou 1) |
 | `sensor.pvrouter_night` | NIGHT | — | Mode nuit |
-| `sensor.pvrouter_time` | TIME | — | Heure du routeur |
-| `sensor.pvrouter_display` | DISPLAY | — | Affichage LCD |
+| `sensor.pvrouter_ecomax` | ECOMAX | — | Mode EcoMax |
+| `sensor.pvrouter_boost` | BOOST | — | Mode Boost |
+| `sensor.pvrouter_bacteria` | BACT | — | Mode anti-légionellose |
+| `sensor.pvrouter_suffi` | SUFFI | — | Suffisance |
+| `sensor.pvrouter_auto_c` | AUTO_C | — | Auto commande |
 | `sensor.pvrouter_mode_info` | MODEINFO | — | Code mode actuel |
+| `sensor.pvrouter_display` | DISPLAY | — | Affichage LCD |
+| `sensor.pvrouter_time` | TIME | — | Heure du routeur |
+| `sensor.pvrouter_wifi_level` | WIFI | dBm | Niveau signal WiFi |
+| `sensor.pvrouter_ssid` | SSID | — | Réseau WiFi connecté |
+| `sensor.pvrouter_mqtt_status` | MQTT | — | Statut connexion MQTT |
+| `sensor.pvrouter_model` | MODEL | — | Modèle du routeur |
 | `sensor.pvrouter_firmware` | Version | — | Version firmware |
 
 ### Switches
@@ -187,12 +219,13 @@ outputs:
 
 ---
 
-## 8. Exemple configuration complète
+## 8. Exemples de configuration carte
 
 ```yaml
-# Carte avec 2 ballons sur sortie 1 + borne VE sur sortie 2
+# Configuration complète — 2 ballons + borne VE
 type: custom:pvrouter-card
 entity_prefix: pvrouter
+home_entity: "sensor.home_conso_live"
 outputs:
   - id: "1"
     name: "Ballon Cuisine"
@@ -209,7 +242,7 @@ outputs:
 ```
 
 ```yaml
-# Carte simple — 1 seul ballon, pas de sortie 2
+# Configuration simple — 1 ballon uniquement
 type: custom:pvrouter-card
 entity_prefix: pvrouter
 outputs:
@@ -221,4 +254,19 @@ outputs:
     enabled: false
   - id: "2"
     enabled: false
+```
+
+```yaml
+# Sans entité maison personnalisée (utilise le defaut)
+type: custom:pvrouter-card
+entity_prefix: pvrouter
+outputs:
+  - id: "1"
+    name: "Chauffe-eau"
+    icon: "ballon.png"
+    enabled: true
+  - id: "2"
+    name: "Piscine"
+    icon: "charge.png"
+    enabled: true
 ```
