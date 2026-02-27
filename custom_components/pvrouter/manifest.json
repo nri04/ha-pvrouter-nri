@@ -1,10 +1,13 @@
 {
   "domain": "pvrouter",
   "name": "PvRouter NRI",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "config_flow": true,
-  "iot_class": "local_polling",
-  "mqtt": {
-    "platforms": ["sensor", "switch", "button"]
-  }
+  "iot_class": "local_push",
+  "documentation": "https://github.com/nri04/ha-pvrouter-nri",
+  "issue_tracker": "https://github.com/nri04/ha-pvrouter-nri/issues",
+  "codeowners": ["@nri04"],
+  "requirements": [],
+  "dependencies": ["mqtt"],
+  "after_dependencies": ["mqtt"]
 }
