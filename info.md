@@ -1,10 +1,11 @@
 # PvRouter NRI Integration
 
-Cette intégration permet de piloter et surveiller votre PvRouter Smart via MQTT.
+Cette intÃ©gration permet de piloter et surveiller les routeurs solaire SmartPvRouter ou CapSoLux de smart electromation technology via MQTT.
 
-### Fonctionnalités :
-- Suivi en temps réel de la production et température.
-- Pilotage du ballon d'eau chaude et des modes forcés.
-- Bouton de redémarrage à distance.
+### FonctionnalitÃ©s :
+- Suivi en temps rÃ©el de la production et tempÃ©rature.
+- Pilotage du ballon d'eau chaude et des modes forcÃ©s.
+- Bouton de redÃ©marrage Ã  distance.
 
-**Installation :** Ajoutez ce dépôt dans HACS comme "Dépôt personnalisé".
+
+**Installation :** Ajoutez ce dÃ©pÃ´t dans HACS comme "DÃ©pÃ´t personnalisÃ©".
