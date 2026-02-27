@@ -1,7 +1,5 @@
 DOMAIN = "pvrouter"
-
-# Configuration
-CONF_TOPIC_PREFIX = "topic_prefix" # Par défaut PVROUTER005
+CONF_TOPIC_PREFIX = "mqtt_prefix"
 
 # Topics
 TOPIC_DATA = "{}/DATA"
@@ -14,4 +12,5 @@ ATTR_TEMP1 = "TEMP1"
 ATTR_TEMP2 = "TEMP2"
 ATTR_PIN = "PIN"
 ATTR_INJECT = "INJECT"
+
 ATTR_MODE = "MODEINFO"
