@@ -1,0 +1,12 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configuration PvRouter",
+        "data": {
+          "topic_prefix": "Préfixe MQTT (ex: PVROUTER005)"
+        }
+      }
+    }
+  }
+}
