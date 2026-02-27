@@ -2,9 +2,9 @@
   "config": {
     "step": {
       "user": {
-        "title": "Configuration PvRouter",
+        "title": "PvRouter NRI Setup",
         "data": {
-          "topic_prefix": "Préfixe MQTT (ex: PVROUTER005)"
+          "topic_prefix": "MQTT Topic Prefix"
         }
       }
     }
