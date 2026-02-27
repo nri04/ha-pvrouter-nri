@@ -30,7 +30,7 @@ class PvRouterCard extends HTMLElement {
     const eff   = get("efficiency");
     const pout  = get("pout");
 
-    const col = (v) => (v !== null && v > 5) ? "#03a9f4" : "#555";
+    const active = (v) => (v !== null && v > 5);
 
     this.innerHTML = `
       <ha-card>
@@ -46,13 +46,13 @@ class PvRouterCard extends HTMLElement {
           </div>
 
           <div class="pv-cell mid-center">
-            <div class="pv-arrow-v" style="color:${col(prod)}">&#9660;</div>
+            <div class="pv-arrow-v ${active(prod) ? 'flowing-down' : 'inactive'}">&#9660;</div>
             <div class="pv-eff">${eff !== null ? eff.toFixed(1) + "%" : "&mdash;"}<br><small>Efficacite</small></div>
-            <div class="pv-arrow-v" style="color:${col(pout)}">&#9660;</div>
+            <div class="pv-arrow-v ${active(pout) ? 'flowing-down' : 'inactive'}">&#9660;</div>
           </div>
 
           <div class="pv-cell bot-left">
-            <div class="pv-arrow-h" style="color:${col(load1)}">&#9668;</div>
+            <div class="pv-arrow-h ${active(load1) ? 'flowing-left' : 'inactive'}">&#9668;</div>
             <div class="pv-box load">
               <div class="pv-icon">&#128268;</div>
               <div class="pv-name">${name1}</div>
@@ -66,7 +66,7 @@ class PvRouterCard extends HTMLElement {
               <div class="pv-name">${name2}</div>
               <div class="pv-val">${fmt(load2)}</div>
             </div>
-            <div class="pv-arrow-h" style="color:${col(load2)}">&#9658;</div>
+            <div class="pv-arrow-h ${active(load2) ? 'flowing-right' : 'inactive'}">&#9658;</div>
           </div>
 
         </div>
@@ -83,9 +83,28 @@ class PvRouterCard extends HTMLElement {
           .pv-name { font-size:0.75em; color:var(--secondary-text-color); margin:2px 0; }
           .pv-val { font-size:1.1em; font-weight:bold; color:#03a9f4; }
           .pv-box.solar .pv-val { color:#f4c403; }
-          .pv-arrow-v, .pv-arrow-h { font-size:1.4em; line-height:1; transition:color 0.3s; }
+          .pv-arrow-v, .pv-arrow-h { font-size:1.6em; line-height:1; }
           .pv-eff { text-align:center; font-size:0.85em; color:var(--primary-text-color); padding:4px 10px; border:1px solid #444; border-radius:6px; min-width:70px; }
           .pv-eff small { color:var(--secondary-text-color); font-size:0.8em; }
+
+          .inactive { color:#555; }
+
+          @keyframes pulse-down {
+            0%,100% { color:#03a9f4; transform:translateY(0); }
+            50% { color:#7dd4f8; transform:translateY(3px); }
+          }
+          @keyframes pulse-left {
+            0%,100% { color:#03a9f4; transform:translateX(0); }
+            50% { color:#7dd4f8; transform:translateX(-3px); }
+          }
+          @keyframes pulse-right {
+            0%,100% { color:#03a9f4; transform:translateX(0); }
+            50% { color:#7dd4f8; transform:translateX(3px); }
+          }
+
+          .flowing-down  { animation: pulse-down  1s ease-in-out infinite; }
+          .flowing-left  { animation: pulse-left  1s ease-in-out infinite; }
+          .flowing-right { animation: pulse-right 1s ease-in-out infinite; }
         </style>
       </ha-card>`;
   }
