@@ -3,14 +3,13 @@ from homeassistant import config_entries
 from .const import DOMAIN, CONF_TOPIC_PREFIX
 
 class PvRouterConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+    """Handle a config flow for PvRouter NRI."""
     VERSION = 1
 
     async def async_step_user(self, user_input=None):
+        """Etape initiale de configuration."""
         if user_input is not None:
-            return self.async_create_entry(
-                title=f"PvRouter ({user_input[CONF_TOPIC_PREFIX]})", 
-                data=user_input
-            )
+            return self.async_create_entry(title="PvRouter NRI", data=user_input)
 
         return self.async_show_form(
             step_id="user",
