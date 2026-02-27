@@ -1,20 +1,21 @@
-# PvRouter NRI pour Home Assistant
+# NRI PvRouter pour Home Assistant
 
-IntÈgration personnalisÈe pour superviser et piloter le **Smart Pv-Router**.
+Int√©gration personnalis√©e pour superviser et piloter le **Smart Pv-Router** et le **CapSoLux** de smart electromation technology.
 
-## PrÈ-requis
+## Pr√©-requis
 - Un broker MQTT (Mosquitto) fonctionnel sur Home Assistant.
-- Votre PvRouter configurÈ pour publier sur le topic `PVROUTER005` (ou votre prÈfixe personnalisÈ).
+- Votre PvRouter configur√© pour publier sur le topic `PVROUTER005` (ou votre pr√©fixe personnalis√©).
 
 ## Installation
-### Via HACS (RecommandÈ)
+### Via HACS (Recommand√©)
 1. Ouvrez HACS dans Home Assistant.
-2. Cliquez sur les 3 points en haut ‡ droite -> **DÈpÙts personnalisÈs**.
-3. Ajoutez l'URL de ce dÈpÙt et sÈlectionnez la catÈgorie **IntÈgration**.
+2. Cliquez sur les 3 points en haut √† droite -> **D√©p√¥ts personnalis√©s**.
+3. Ajoutez l'URL de ce d√©p√¥t et s√©lectionnez la cat√©gorie **Int√©gration**.
 4. Cliquez sur **Installer**.
-5. RedÈmarrez Home Assistant.
+5. Red√©marrez Home Assistant.
 
 ### Configuration
-1. Allez dans **ParamËtres** -> **Appareils et Services** -> **Ajouter une intÈgration**.
+1. Allez dans **Param√®tres** -> **Appareils et Services** -> **Ajouter une int√©gration**.
 2. Cherchez **PvRouter NRI**.
-3. Entrez le prÈfixe MQTT de votre appareil (ex: `PVROUTER005`).
+
+3. Entrez le pr√©fixe MQTT de votre appareil (ex: `PVROUTER005`).
