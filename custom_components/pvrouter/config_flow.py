@@ -9,7 +9,7 @@ class PvRouterConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input=None):
         """Etape initiale de configuration."""
         if user_input is not None:
-            # On crÃ©e l'entrÃ©e en utilisant la clÃ© dÃ©finie dans const.py
+            # On crée l'entrée en utilisant la clé définie dans const.py
             return self.async_create_entry(
                 title=f"PvRouter ({user_input[CONF_TOPIC_PREFIX]})", 
                 data=user_input
