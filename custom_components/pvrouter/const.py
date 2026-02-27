@@ -1,9 +1,9 @@
 DOMAIN = "pvrouter"
 
-# Configuration
-CONF_TOPIC_PREFIX = "topic_prefix" # Par défaut PVROUTER005
+# Modification ici : on utilise une clé interne standard
+CONF_TOPIC_PREFIX = "topic_prefix" 
 
-# Topics
+# Topics (Le reste est correct)
 TOPIC_DATA = "{}/DATA"
 TOPIC_SETMODE = "{}/SETMODE"
 TOPIC_SWITCH = "{}/SWITCH"
