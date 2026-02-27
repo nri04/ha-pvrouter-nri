@@ -1,17 +1,17 @@
 # PvRouter NRI — Installation & Configuration
 
+## 1. Installation du plugin
+Via HACS (Recommandé)
+Ouvrez HACS dans Home Assistant.
+Cliquez sur les 3 points en haut à droite -> Dépôts personnalisés.
+Ajoutez l'URL de ce dépôt et sélectionnez la catégorie Intégration.
+Cliquez sur Installer.
+Redémarrez Home Assistant.
 
-## 1. Installation manuelle du plugin
+## 1.1. Installation manuelle du plugin
 
 1. Copier le dossier `pvrouter` dans `config/custom_components/`
-2. **Redémarrer Home Assistant** (obligatoire)
-
-  ou
-
-1. Aller dans **Paramètres → Appareils & Services → Ajouter une intégration**
-2. Rechercher **PvRouter NRI**
-3. Saisir le **préfixe MQTT** de votre routeur (ex: `PVROUTER005`)
-
+2. **Redémarrer Home assistant
 ---
 
 ## 2. Prérequis
