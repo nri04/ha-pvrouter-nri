@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 import logging
 from homeassistant.core import HomeAssistant
@@ -11,15 +12,11 @@ PLATFORMS = ["sensor", "switch", "button"]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Configuration de l'intégration via l'interface active."""
-
-    # Enregistrement du dossier www uniquement s'il existe
     www_path = hass.config.path("custom_components/pvrouter/www")
     if os.path.isdir(www_path):
         hass.http.register_static_path("/pvrouter-nri/static", www_path, True)
 
     prefix = entry.data.get(CONF_TOPIC_PREFIX)
-
     coordinator = PvRouterCoordinator(hass, prefix)
     await coordinator._async_setup()
 
@@ -31,7 +28,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Déchargement de l'intégration."""
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         coordinator = hass.data[DOMAIN].pop(entry.entry_id)

@@ -1,14 +1,10 @@
-from homeassistant.components.sensor import (
-    SensorEntity,
-    SensorDeviceClass,
-    SensorStateClass,
-)
+# -*- coding: utf-8 -*-
+from homeassistant.components.sensor import SensorEntity, SensorDeviceClass, SensorStateClass
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import DOMAIN
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    """Configuration des capteurs à partir du coordinateur."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
 
     sensors_definitions = [
@@ -33,15 +29,13 @@ async def async_setup_entry(hass, entry, async_add_entities):
         ("Mode Info",        "MODEINFO",    None,  None,                          None),
     ]
 
-    entities = [
-        PvRouterSensor(coordinator, name, json_key, unit, d_class, s_class)
-        for name, json_key, unit, d_class, s_class in sensors_definitions
-    ]
-    async_add_entities(entities)
+    async_add_entities([
+        PvRouterSensor(coordinator, name, key, unit, dc, sc)
+        for name, key, unit, dc, sc in sensors_definitions
+    ])
 
 
 class PvRouterSensor(CoordinatorEntity, SensorEntity):
-    """Capteur générique pour le PvRouter."""
 
     def __init__(self, coordinator, name, json_key, unit, d_class, s_class):
         super().__init__(coordinator)

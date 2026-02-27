@@ -1,23 +1,21 @@
+# -*- coding: utf-8 -*-
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.components.mqtt import async_publish
 from .const import DOMAIN, TOPIC_SETMODE, TOPIC_SWITCH
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    """Configuration des switches PvRouter."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
-
     async_add_entities([
         PvRouterSwitch(coordinator, "Switch Ballon", "SWITCH", "1", "0"),
-        PvRouterModeSwitch(coordinator, "Mode Automatique",   "11"),
-        PvRouterModeSwitch(coordinator, "Activation Forcée",  "22"),
-        PvRouterModeSwitch(coordinator, "Désactiver Sorties", "00"),
+        PvRouterModeSwitch(coordinator, "Mode Automatique",    "11"),
+        PvRouterModeSwitch(coordinator, "Activation Forcee",   "22"),
+        PvRouterModeSwitch(coordinator, "Desactiver Sorties",  "00"),
         PvRouterOutput1Switch(coordinator),
     ])
 
 
 class PvRouterSwitch(SwitchEntity):
-    """Switch simple ON/OFF."""
 
     def __init__(self, coordinator, name, topic_suffix, payload_on, payload_off):
         self.coordinator = coordinator
@@ -43,7 +41,6 @@ class PvRouterSwitch(SwitchEntity):
 
 
 class PvRouterModeSwitch(SwitchEntity):
-    """Switch pour changer le mode (SETMODE)."""
 
     def __init__(self, coordinator, name, code_on):
         self.coordinator = coordinator
@@ -69,11 +66,10 @@ class PvRouterModeSwitch(SwitchEntity):
 
 
 class PvRouterOutput1Switch(SwitchEntity):
-    """Gère le mode complexe avec le calcul modulo 10."""
 
     def __init__(self, coordinator):
         self.coordinator = coordinator
-        self._attr_name = "PvRouter Activation Forcée Sortie 1"
+        self._attr_name = "PvRouter Activation Forcee Sortie 1"
         self._attr_unique_id = f"{coordinator.prefix}_sortie1_force"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, coordinator.prefix)},

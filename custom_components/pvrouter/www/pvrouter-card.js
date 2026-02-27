@@ -1,36 +1,31 @@
 class PvRouterCard extends HTMLElement {
-  setConfig(config) {
-    this.config = config;
-  }
-
-  getCardSize() {
-    return 2;
-  }
-
   set hass(hass) {
-    const prefix = this.config?.entity_prefix || "pvrouter";
-
     if (!this.content) {
       this.innerHTML = `
         <ha-card header="PvRouter NRI - Live">
-          <div class="card-content" style="display:flex; justify-content:space-around; text-align:center; padding:16px;">
-            <div>?? Production<br><span id="solar" class="val">—</span> W</div>
-            <div>?? Maison<br><span id="house" class="val">—</span> W</div>
-            <div>?? Charge<br><span id="load" class="val">—</span> W</div>
+          <div class="card-content" style="display: flex; justify-content: space-around; text-align: center;">
+            <div id="solar">??<br><span class="val">0</span>W</div>
+            <div id="house">??<br><span class="val">0</span>W</div>
+            <div id="load">??<br><span class="val">0</span>W</div>
           </div>
           <style>
-            .val { font-weight: bold; font-size: 1.4em; color: #03a9f4; }
+            .val { font-weight: bold; font-size: 1.2em; color: #03a9f4; }
           </style>
         </ha-card>
       `;
       this.content = this.querySelector(".card-content");
     }
 
-    const get = (key) => hass.states[`sensor.${prefix}_${key}`]?.state ?? "—";
+    // On récupère les vraies valeurs de tes sensors
+    const solar = hass.states['sensor.pvrouter_production']?.state || '0';
+    const load = hass.states['sensor.pvrouter_load1']?.state || '0';
 
-    this.querySelector("#solar").innerText = get("production");
-    this.querySelector("#house").innerText = get("pout");
-    this.querySelector("#load").innerText  = get("load_1");
+    this.querySelector("#solar .val").innerText = solar;
+    this.querySelector("#load .val").innerText = load;
+  }
+
+  setConfig(config) {
+    this.config = config;
   }
 }
 
