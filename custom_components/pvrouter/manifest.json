@@ -6,5 +6,6 @@
   "iot_class": "local_polling",
   "mqtt": {
     "platforms": ["sensor", "switch", "button"]
-  }
+  },
+  "issue_tracker": "https://github.com/nri04/ha-pvrouter-nri/issues"
 }
