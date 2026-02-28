@@ -5,7 +5,7 @@ Intégration personnalisée pour superviser et piloter les routeurs solaires **S
 
 <p align="left">
   <a href="https://github.com/loraraspi91/PV-Router">
-    <img src="https:/smartelectromation.com/wp-content/uploads/2025/11/boitier_sar-1-268x300.jpg" width="200" alt="Lien Fabricant">
+    <img src="https://smartelectromation.com/wp-content/uploads/2025/11/boitier_sar-1-268x300.jpg" width="200" alt="Lien Fabricant">
   </a>
   <a href="https://smartelectromation.com">
     <img src="https://www.noelrecton.com/PvRouter/Sans%20titre-3.jpg" width="200" alt="Lien Fabricant">
@@ -29,6 +29,7 @@ Intégration personnalisée pour superviser et piloter les routeurs solaires **S
 2. Cherchez **PvRouter NRI**.
 
 3. Entrez le préfixe MQTT de votre appareil (ex: `PVR-XXX`).
+
 
 
 
