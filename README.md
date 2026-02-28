@@ -4,7 +4,10 @@ Intégration personnalisée pour superviser et piloter les routeurs solaires **S
 [SMARTELECTROMATION](https://smartelectromation.com).
 
 [![Lien Fabricant](https://smartelectromation.com/wp-content/uploads/2025/11/boitier_sar-1-268x300.jpg)](https://github.com/loraraspi91/PV-Router)
-[![Lien Fabricant](https://www.noelrecton.com/PvRouter/Sans%20titre-3.jpg)](https://github.com/loraraspi91/PV-Router)
+
+<a href="https://github.com/loraraspi91/PV-Router">
+  <img src="https://www.noelrecton.com/PvRouter/Sans%20titre-3.jpg" width="100" alt="Lien Fabricant">
+</a>
 ## Pré-requis
 - Un broker MQTT (Mosquitto) fonctionnel sur Home Assistant.
 - Votre PvRouter configuré pour publier sur le topic PVR-XXXX (remplacer le PVROUTER NAME).
@@ -22,6 +25,7 @@ Intégration personnalisée pour superviser et piloter les routeurs solaires **S
 2. Cherchez **PvRouter NRI**.
 
 3. Entrez le préfixe MQTT de votre appareil (ex: `PVR-XXX`).
+
 
 
 
