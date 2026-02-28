@@ -4,7 +4,7 @@ Intégration personnalisée pour superviser et piloter les routeurs solaires **S
 
 ## Pré-requis
 - Un broker MQTT (Mosquitto) fonctionnel sur Home Assistant.
-- Votre PvRouter configuré pour publier sur le topic `PVROUTER005` (ou votre préfixe personnalisé).
+- Votre PvRouter configuré pour publier sur le topic PVR-XXXX (remplacer le PVROUTER NAME).
 
 ## Installation
 ### Via HACS (Recommandé)
@@ -19,5 +19,6 @@ Intégration personnalisée pour superviser et piloter les routeurs solaires **S
 2. Cherchez **PvRouter NRI**.
 
 3. Entrez le préfixe MQTT de votre appareil (ex: `PVR-XXX`).
+
 
 
