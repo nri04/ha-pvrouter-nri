@@ -65,19 +65,54 @@ class PvRouterCard extends HTMLElement {
     // Maison = PROD + PIN - POUT
     // Solaire + reseau (import/export) - sorties routeur
     const poutVal = getF('pout');
+    // Formule officielle app SmartPvRouter : PROD + PIN - POUT (HomeFragment.kt ligne 525)
     const homeW = (poutVal !== null && pin !== null && prod !== null)
       ? Math.round(prod + pin - poutVal)
       : null;
 
-    const dual = load !== null && load > 0 && load0 !== null && load0 > 0;
-    const s1_0_active = s1on && (!dual || bal === "0");
-    const pwr_1_0 = !s1_0_active ? 0 : s1sat ? (dual ? load : load1)??0 : p1??0;
-    const s1_1_active = s1on && dual && bal === "1";
-    const pwr_1_1 = !s1_1_active ? 0 : s1sat ? load0??0 : p1??0;
-    const pwr_2   = !s2on ? 0 : s2sat ? load2??0 : p2??0;
+    // Mode dual : deux appareils sur sortie 1 (LOAD10 + LOAD11 presents et > 0)
+    const dual     = load !== null && load > 0 && load0 !== null && load0 > 0;
+    const ballonInt = bal !== null ? parseInt(bal) : 0;  // 0 ou 1
+    const pout     = poutVal ?? 0;  // reutilise poutVal deja calcule
+    const load1v   = load1 ?? 0;
+    const load2v   = load2 ?? 0;
+
+    // --- Calcul exact depuis app Kotlin ---
+    let pwr_1_0 = 0;  // ballon 0 (sortie 1, appareil 0)
+    let pwr_1_1 = 0;  // ballon 1 (sortie 1, appareil 1) — mode dual uniquement
+    let pwr_2   = 0;  // sortie 2
+
+    if (!s1sat && s1on) {
+      // Sortie 1 active, pas saturee
+      if (pout <= load1v) {
+        // POUT ne depasse pas LOAD1 : tout va dans le ballon actif
+        if (!dual || ballonInt === 0) pwr_1_0 = pout;
+        else                          pwr_1_1 = pout;
+      } else {
+        // POUT depasse LOAD1 : ballon actif prend LOAD1, reste pour sortie 2
+        if (!dual || ballonInt === 0) pwr_1_0 = load1v;
+        else                          pwr_1_1 = load1v;
+        pwr_2 = (s2sat || !s2on) ? 0 : pout - load1v - (pin ?? 0);
+      }
+    } else if (s1sat || !s1on) {
+      // Sortie 1 saturee ou inactive : sortie 2 prend ce qu elle peut
+      pwr_1_0 = 0;
+      pwr_1_1 = 0;
+      pwr_2 = (s2sat || !s2on) ? 0 : Math.min(pout, load2v);
+    }
+
+    // Securite : pas de valeur negative
+    pwr_1_0 = Math.max(0, pwr_1_0);
+    pwr_1_1 = Math.max(0, pwr_1_1);
+    pwr_2   = Math.max(0, pwr_2);
 
     const pwrFor = (id) => id==="1"?pwr_1_0 : id==="1.1"?pwr_1_1 : id==="2"?pwr_2 : 0;
-    const onFor  = (id) => id==="1"?s1_0_active : id==="1.1"?s1_1_active : id==="2"?s2on : false;
+    const onFor  = (id) => {
+      if (id === "1")   return s1on && (!dual || ballonInt === 0) && pwr_1_0 > 0;
+      if (id === "1.1") return s1on && dual && ballonInt === 1 && pwr_1_1 > 0;
+      if (id === "2")   return s2on && pwr_2 > 0;
+      return false;
+    };
 
     const importing  = pin !== null && pin > 5;
     const exporting  = pin !== null && pin < -5;
