@@ -146,12 +146,26 @@ class PvRouterCard extends HTMLElement {
       const pw   = pwrFor(out.id);
       const isOn = onFor(out.id);
       const col  = isOn && pw > 5 ? "#03a9f4" : "#777";
+
+      // Temperature optionnelle via temp_entity
+      let tempHTML = "";
+      if (out.temp_entity) {
+        const ts = hass.states[out.temp_entity];
+        if (ts && !["unavailable","unknown","none"].includes(ts.state)) {
+          const tv = parseFloat(ts.state);
+          if (!isNaN(tv)) {
+            tempHTML = `<div class="dev-temp">${tv.toFixed(1)} °C</div>`;
+          }
+        }
+      }
+
       return `
         <div class="out-row">
           <div class="dev-box" style="border-color:${isOn && pw > 5 ? '#03a9f4' : '#444'}">
             <img src="${base}/${out.icon||'ballon.png'}" class="dev-img">
             <div class="dev-name">${out.name}</div>
             <div class="dev-val" style="color:${col}">${fmt(pw)}</div>
+            ${tempHTML}
           </div>
           <div class="arrs-h">${arrsL(pw,'#03a9f4')}</div>
         </div>`;
@@ -269,6 +283,7 @@ class PvRouterCard extends HTMLElement {
           .dev-name   { font-size: .68em; color: var(--secondary-text-color); margin-top: 2px; text-align: center; }
           .dev-val    { font-size: .92em; font-weight: bold; text-align: center; }
           .dev-sub    { font-size: .62em; text-align: center; }
+          .dev-temp   { font-size: .75em; color: #e67e22; margin-top: 2px; text-align: center; }
 
           .router-box {
             display: flex; flex-direction: column; align-items: center;
