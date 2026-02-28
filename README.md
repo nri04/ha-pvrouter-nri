@@ -1,7 +1,9 @@
 # NRI PvRouter pour Home Assistant
 
 Intégration personnalisée pour superviser et piloter les routeurs solaires **Smart Pv-Router** et **CapSoLux** de smart electromation technology.
+[SMARTELECTROMATION](https://smartelectromation.com).
 
+[![Lien Fabricant](https://smartelectromation.com/wp-content/uploads/2025/11/boitier_sar-1-268x300.jpg)](https://github.com/loraraspi91/PV-Router)
 ## Pré-requis
 - Un broker MQTT (Mosquitto) fonctionnel sur Home Assistant.
 - Votre PvRouter configuré pour publier sur le topic PVR-XXXX (remplacer le PVROUTER NAME).
@@ -19,6 +21,7 @@ Intégration personnalisée pour superviser et piloter les routeurs solaires **S
 2. Cherchez **PvRouter NRI**.
 
 3. Entrez le préfixe MQTT de votre appareil (ex: `PVR-XXX`).
+
 
 
 
