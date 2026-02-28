@@ -53,15 +53,16 @@ class PvRouterCard extends HTMLElement {
     const pin   = getF("pin");
     const p1    = getF("p1");
     const p2    = getF("p2");
-    const bal   = getS("ballon_actif");
-    const s1on  = getS("statusout1") === "True";
-    const s2on  = getS("statusout2") === "True";
-    const s1sat = getS("load1satured") === "True";
-    const s2sat = getS("load2satured") === "True";
-    const load  = getF("load_10");
-    const load0 = getF("load_11");
-    const load1 = getF("load_1");
-    const load2 = getF("load_2");
+    // Noms des entités HA : dérivés du nom sensor (ex: "Status Out 1" → sensor.pvrouter_status_out_1)
+    const bal   = getS("ballon_actif");       // sensor.pvrouter_ballon_actif
+    const s1on  = getS("status_out_1") === "True";   // sensor.pvrouter_status_out_1
+    const s2on  = getS("status_out_2") === "True";   // sensor.pvrouter_status_out_2
+    const s1sat = getS("load_1_satured") === "True"; // sensor.pvrouter_load_1_satured
+    const s2sat = getS("load_2_satured") === "True"; // sensor.pvrouter_load_2_satured
+    const load  = getF("load_10");   // sensor.pvrouter_load_10
+    const load0 = getF("load_11");   // sensor.pvrouter_load_11
+    const load1 = getF("load_1");    // sensor.pvrouter_load_1
+    const load2 = getF("load_2");    // sensor.pvrouter_load_2
     // Maison = PROD + PIN - POUT
     // Solaire + reseau (import/export) - sorties routeur
     const poutVal = getF('pout');
@@ -82,24 +83,18 @@ class PvRouterCard extends HTMLElement {
     let pwr_1_1 = 0;  // ballon 1 (sortie 1, appareil 1) — mode dual uniquement
     let pwr_2   = 0;  // sortie 2
 
-    if (!s1sat && s1on) {
-      // Sortie 1 active, pas saturee
-      if (pout <= load1v) {
-        // POUT ne depasse pas LOAD1 : tout va dans le ballon actif
-        if (!dual || ballonInt === 0) pwr_1_0 = pout;
-        else                          pwr_1_1 = pout;
-      } else {
-        // POUT depasse LOAD1 : ballon actif prend LOAD1, reste pour sortie 2
-        if (!dual || ballonInt === 0) pwr_1_0 = load1v;
-        else                          pwr_1_1 = load1v;
-        pwr_2 = (s2sat || !s2on) ? 0 : pout - load1v - (pin ?? 0);
-      }
-    } else if (s1sat || !s1on) {
-      // Sortie 1 saturee ou inactive : sortie 2 prend ce qu elle peut
+    // Logique simple et correcte : P1 et P2 donnent directement la puissance par sortie
+    // STATUS=False ou SATURED=True → 0W
+    // STATUS=True et SATURED=False → P1 ou P2
+    if (!s1on || s1sat) {
       pwr_1_0 = 0;
       pwr_1_1 = 0;
-      pwr_2 = (s2sat || !s2on) ? 0 : Math.min(pout, load2v);
+    } else {
+      // P1 va au ballon actif
+      if (!dual || ballonInt === 0) pwr_1_0 = p1 ?? 0;
+      else                          pwr_1_1 = p1 ?? 0;
     }
+    pwr_2 = (!s2on || s2sat) ? 0 : (p2 ?? 0);
 
     // Securite : pas de valeur negative
     pwr_1_0 = Math.max(0, pwr_1_0);
