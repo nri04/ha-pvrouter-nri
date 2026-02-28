@@ -188,6 +188,7 @@ class PvRouterCard extends HTMLElement {
               <img src="${base}/pvrouter.png" class="router-img">
               <div class="eff-val">${eff !== null ? eff.toFixed(1)+"%" : "—"}</div>
               <div class="eff-lbl">Efficacite</div>
+              ${(() => { const t = getF("temp_interne"); return t !== null ? `<div class="eff-temp">${t.toFixed(1)} °C</div>` : ""; })()}
             </div>
           </div>
 
@@ -292,6 +293,7 @@ class PvRouterCard extends HTMLElement {
           .router-img { width: 76px; height: 54px; object-fit: contain; }
           .eff-val    { font-size: .95em; font-weight: bold; }
           .eff-lbl    { font-size: .62em; color: var(--secondary-text-color); }
+          .eff-temp   { font-size: .72em; color: #e67e22; margin-top: 2px; }
 
           .arrs-h { display:flex; flex-direction:row; gap:1px; align-items:center; min-width:28px; justify-content:center; }
           .arrs-v { display:flex; flex-direction:column; gap:1px; align-items:center; min-height:20px; justify-content:center; }
