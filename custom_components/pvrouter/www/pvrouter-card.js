@@ -62,8 +62,12 @@ class PvRouterCard extends HTMLElement {
     const load0 = getF("load_11");
     const load1 = getF("load_1");
     const load2 = getF("load_2");
-    const homekW = getEnt(homeEntity);
-    const homeW  = homekW !== null ? homekW * 1000 : null;
+    // Maison = PROD + PIN - POUT
+    // Solaire + reseau (import/export) - sorties routeur
+    const poutVal = getF('pout');
+    const homeW = (poutVal !== null && pin !== null && prod !== null)
+      ? Math.round(prod + pin - poutVal)
+      : null;
 
     const dual = load !== null && load > 0 && load0 !== null && load0 > 0;
     const s1_0_active = s1on && (!dual || bal === "0");
