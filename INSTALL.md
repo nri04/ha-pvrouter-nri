@@ -18,9 +18,13 @@ Redémarrez Home Assistant.
 
 - L'intégration **MQTT** doit être configurée dans Home Assistant
 - Le broker MQTT doit être accessible et le PvRouter connecté
+- 
+## 2.1 Le topic
 
+- Le topic commence avec le nom du Router défini dans l’interface des paramètres avec le paramètre
+« Router Name » défini dans la configuration du Routeur. 
+- Par exemple, si la valeur du paramètre « Router Name » est PVR-XX, le topic sera PVR-XX
 ---
-
 ## 3. Structure des fichiers installés
 
 ```
