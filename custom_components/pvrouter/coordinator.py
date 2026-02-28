@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import (
+    DataUpdateCoordinator
+)
 from homeassistant.components.mqtt import async_subscribe
 from .const import DOMAIN, TOPIC_DATA
 
@@ -25,11 +27,17 @@ class PvRouterCoordinator(DataUpdateCoordinator):
             try:
                 payload = json.loads(msg.payload)
                 self.async_set_updated_data(payload)
-                _LOGGER.debug("Donnees PvRouter recues: %s", payload)
+                _LOGGER.debug(
+                    "Donnees PvRouter recues: %s", payload
+                )
             except json.JSONDecodeError:
-                _LOGGER.error("Erreur JSON sur le topic %s", topic)
+                _LOGGER.error(
+                    "Erreur JSON sur le topic %s", topic
+                )
 
-        self._unsubscribe = await async_subscribe(self.hass, topic, message_received)
+        self._unsubscribe = await async_subscribe(
+            self.hass, topic, message_received
+        )
 
     def unsubscribe(self):
         """Desabonnement MQTT propre."""
