@@ -138,9 +138,6 @@ class PvRouterCard extends HTMLElement {
 
     const enabledOuts = outs.filter(o => o.enabled !== false);
     const nOuts = Math.max(enabledOuts.length, 1);
-    // Hauteur fixe par sortie — minimum 220px pour que réseau et maison soient bien séparés
-    const rowH   = 100;
-    const totalH = Math.max(nOuts * rowH + (nOuts - 1) * 10, 220);
 
     const outsHTML = enabledOuts.map((out) => {
       const pw   = pwrFor(out.id);
@@ -177,7 +174,7 @@ class PvRouterCard extends HTMLElement {
         <div class="pv-wrap">
 
           <!-- GAUCHE -->
-          <div class="col-left" style="height:${totalH}px">${outsHTML}</div>
+          <div class="col-left">${outsHTML}</div>
 
           <!-- CENTRE : toujours au centre, indépendant du nombre de sorties -->
           <div class="col-center">
@@ -195,7 +192,7 @@ class PvRouterCard extends HTMLElement {
           </div>
 
           <!-- DROITE : réseau collé en haut, maison collée en bas -->
-          <div class="col-right" style="height:${totalH}px">
+          <div class="col-right">
             <div class="right-item">
               <div class="arrs-h">${gridArrows}</div>
               <div class="dev-box" style="border-color:${Math.abs(pin??0)>5?gridColor:'#444'}">
@@ -229,12 +226,13 @@ class PvRouterCard extends HTMLElement {
             gap: 0 8px;
           }
 
-          /* GAUCHE — hauteur calculée, sorties réparties uniformément */
+          /* GAUCHE — hauteur automatique, sorties réparties uniformément */
           .col-left {
             display: flex;
             flex-direction: column;
             justify-content: space-around;
             align-items: flex-end;
+            gap: 10px;
           }
           .out-row {
             display: flex;
@@ -243,7 +241,7 @@ class PvRouterCard extends HTMLElement {
             gap: 4px;
           }
 
-          /* CENTRE — toujours centré verticalement */
+          /* CENTRE — centré verticalement, s étire sur toute la hauteur de la grille */
           .col-center {
             display: flex;
             flex-direction: column;
@@ -251,14 +249,16 @@ class PvRouterCard extends HTMLElement {
             justify-content: center;
             gap: 4px;
             flex-shrink: 0;
+            align-self: stretch;
           }
 
-          /* DROITE — hauteur identique à gauche, réseau haut / maison bas */
+          /* DROITE — hauteur automatique, réseau haut / maison bas */
           .col-right {
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             align-items: flex-start;
+            gap: 10px;
           }
           .right-item {
             display: flex;
