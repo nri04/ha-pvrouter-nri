@@ -1,30 +1,38 @@
 # PvRouter NRI — Installation & Configuration
 
-## 1. Installation du plugin
-Via HACS (Recommandé)
-Ouvrez HACS dans Home Assistant.
-Cliquez sur les 3 points en haut à droite -> Dépôts personnalisés.
-Ajoutez l'URL de ce dépôt et sélectionnez la catégorie Intégration.
-Cliquez sur Installer.
-Redémarrez Home Assistant.
+## 1. Installation
 
-## 1.1. Installation manuelle du plugin
+### Via HACS (recommandé)
+
+1. Ouvrir **HACS** dans Home Assistant
+2. Cliquer sur les 3 points en haut à droite → **Dépôts personnalisés**
+3. Ajouter l'URL : `https://github.com/nri04/ha-pvrouter-nri` — catégorie : **Intégration**
+4. Cliquer **Installer**
+5. **Redémarrer Home Assistant**
+6. Aller dans **Paramètres → Appareils & Services → Ajouter une intégration**
+7. Rechercher **PvRouter NRI**
+8. Saisir le **préfixe MQTT** (Router Name défini dans l'interface du routeur, ex: `PVR-XXXX`)
+
+### Installation manuelle
 
 1. Copier le dossier `pvrouter` dans `config/custom_components/`
-2. **Redémarrer Home assistant
+2. **Redémarrer Home Assistant**
+3. Suivre les étapes 6 à 8 ci-dessus
+
 ---
 
 ## 2. Prérequis
 
 - L'intégration **MQTT** doit être configurée dans Home Assistant
 - Le broker MQTT doit être accessible et le PvRouter connecté
-- 
-## 2.1 Le topic
 
-- Le topic commence avec le nom du Router défini dans l’interface des paramètres avec le paramètre
-« Router Name » défini dans la configuration du Routeur. 
-- Par exemple, si la valeur du paramètre « Router Name » est PVR-XX, le topic sera PVR-XX
+### Le topic MQTT
+
+Le préfixe correspond au **Router Name** défini dans les paramètres du routeur.
+Par exemple, si le Router Name est `PVR-XX`, le topic sera `PVR-XX/DATA`.
+
 ---
+
 ## 3. Structure des fichiers installés
 
 ```
@@ -49,7 +57,7 @@ config/custom_components/pvrouter/
     charge.png
     battery.png
     pvrouter.png
-    [vos icones personnalisées...]
+    [vos icônes personnalisées...]
 ```
 
 ---
@@ -59,25 +67,42 @@ config/custom_components/pvrouter/
 La carte **pvrouter-card** est enregistrée automatiquement au démarrage.
 Elle apparaît dans le sélecteur de cartes sous **"PvRouter NRI"**.
 
-### Ajout manuel (YAML)
+### Configuration YAML minimale
 
 ```yaml
 type: custom:pvrouter-card
 entity_prefix: pvrouter
-home_entity: "sensor.home_conso_live"
 outputs:
   - id: "1"
-    name: "Ballon 1"
+    name: "Ballon"
     icon: "ballon.png"
     enabled: true
   - id: "1.1"
-    name: "Ballon 2"
-    icon: "ballon.png"
     enabled: false
   - id: "2"
-    name: "Sortie 2"
-    icon: "charge.png"
     enabled: false
+```
+
+### Configuration complète
+
+```yaml
+type: custom:pvrouter-card
+entity_prefix: pvrouter
+outputs:
+  - id: "1"
+    name: "Ballon Cuisine"
+    icon: "ballon.png"
+    enabled: true
+    temp_entity: "sensor.temperature_ballon_cuisine"
+  - id: "1.1"
+    name: "Ballon SDB"
+    icon: "ballon.png"
+    enabled: true
+    temp_entity: "sensor.temperature_ballon_sdb"
+  - id: "2"
+    name: "Borne VE"
+    icon: "charge.png"
+    enabled: true
 ```
 
 ---
@@ -87,8 +112,9 @@ outputs:
 | Paramètre | Type | Défaut | Description |
 |-----------|------|--------|-------------|
 | `entity_prefix` | string | `pvrouter` | Préfixe des entités HA |
-| `home_entity` | string | `sensor.home_conso_live` | Entité conso maison (en kW) |
-| `outputs` | liste | — | Configuration des sorties |
+| `outputs` | liste | — | Configuration des sorties (voir ci-dessous) |
+
+> **Note :** La consommation maison est calculée automatiquement depuis les capteurs du routeur (`PROD + PIN - POUT`). Aucune entité externe n'est nécessaire.
 
 ### Paramètres par sortie
 
@@ -98,25 +124,30 @@ outputs:
 | `name` | string | `"Sortie X"` | Nom affiché sous l'icône |
 | `icon` | string | `"ballon.png"` | Fichier image dans `www/` |
 | `enabled` | boolean | `true` | `false` pour masquer la sortie |
+| `temp_entity` | string | — | Entité HA de température à afficher (ex: `sensor.temp_ballon`) |
 
 ### IDs de sortie
 
-| ID | Sortie physique | Données | Actif quand |
-|----|----------------|---------|-------------|
-| `"1"` | Sortie 1 — appareil 0 | P1 / LOAD10 / LOAD1 | statusout1=True ET ballon=0 (ou mode simple) |
-| `"1.1"` | Sortie 1 — appareil 1 | P1 / LOAD11 | statusout1=True ET ballon=1 |
-| `"2"` | Sortie 2 | P2 / LOAD2 | statusout2=True |
+| ID | Sortie physique | Actif quand |
+|----|----------------|-------------|
+| `"1"` | Sortie 1 — appareil 0 | STATUS_OUT1=True ET ballon=0 (ou mode simple) |
+| `"1.1"` | Sortie 1 — appareil 1 | STATUS_OUT1=True ET ballon=1 (mode dual uniquement) |
+| `"2"` | Sortie 2 | STATUS_OUT2=True |
 
-> Le mode dual (2 appareils sur sortie 1) est détecté automatiquement
-> si `LOAD10` et `LOAD11` sont présents et > 0 dans le JSON MQTT.
+> Le **mode dual** (2 appareils sur sortie 1) est détecté automatiquement si `LOAD10` et `LOAD11` sont présents et > 0 dans le JSON MQTT. Sans mode dual, la sortie `1.1` n'est jamais active même si `enabled: true`.
 
 ### Logique de calcul puissance affichée
 
-| STATUS | SATURED | Valeur affichée |
-|--------|---------|-----------------|
-| False | — | 0 W |
-| True | False | P1 ou P2 (routage partiel) |
-| True | True | LOAD (charge max atteinte) |
+Identique à l'application mobile SmartPvRouter :
+
+| STATUS_OUT1 | LOAD1_SATURED | POUT vs LOAD1 | Valeur affichée |
+|-------------|---------------|---------------|-----------------|
+| False | — | — | 0 W |
+| True | False | POUT ≤ LOAD1 | POUT (routage partiel) |
+| True | False | POUT > LOAD1 | LOAD1 (ballon) + reste pour sortie 2 |
+| True | True | — | 0 W (ballon), sortie 2 = min(POUT, LOAD2) |
+
+Consommation maison : `PROD + PIN - POUT`
 
 ### Flèches animées
 
@@ -165,26 +196,26 @@ outputs:
 |--------|----------|-------|-------------|
 | `sensor.pvrouter_vin` | VIN | V | Tension entrée |
 | `sensor.pvrouter_cin` | CIN | A | Courant entrée |
-| `sensor.pvrouter_pin` | PIN | W | Puissance entrée réseau |
+| `sensor.pvrouter_pin` | PIN | W | Puissance entrée réseau (négatif = export) |
 | `sensor.pvrouter_inject` | INJECT | kWh | Énergie injectée totale |
 | `sensor.pvrouter_inject_i` | INJECT_I | W | Puissance injection instantanée |
 | `sensor.pvrouter_cout` | COUT | A | Courant sortie |
-| `sensor.pvrouter_pout` | POUT | W | Puissance sortie totale |
+| `sensor.pvrouter_pout` | POUT | W | Puissance sortie totale routée |
 | `sensor.pvrouter_p1` | P1 | W | Puissance routée sortie 1 |
 | `sensor.pvrouter_p2` | P2 | W | Puissance routée sortie 2 |
 | `sensor.pvrouter_load_1` | LOAD1 | W | Charge max sortie active |
 | `sensor.pvrouter_load_2` | LOAD2 | W | Charge max sortie 2 |
-| `sensor.pvrouter_load_10` | LOAD10 | W | Charge max appareil 0 (sortie 1) |
-| `sensor.pvrouter_load_11` | LOAD11 | W | Charge max appareil 1 (sortie 1) |
+| `sensor.pvrouter_load_10` | LOAD10 | W | Charge max appareil 0 (sortie 1, mode dual) |
+| `sensor.pvrouter_load_11` | LOAD11 | W | Charge max appareil 1 (sortie 1, mode dual) |
 | `sensor.pvrouter_saved_power` | SAVED_POWER | kWh | Énergie économisée |
 | `sensor.pvrouter_total_power` | TOTAL_POWER | kWh | Énergie totale routée |
-| `sensor.pvrouter_total_s` | TOT_S | kWh | Énergie totale (compteur S) |
+| `sensor.pvrouter_total_s` | TOT_S | kWh | Énergie totale compteur S |
 | `sensor.pvrouter_production` | PROD | W | Production solaire instantanée |
 | `sensor.pvrouter_total_production` | TOT_PROD | kWh | Production totale |
 | `sensor.pvrouter_ev_power` | EVPOWER | W | Puissance borne VE |
 | `sensor.pvrouter_efficiency` | EFF | % | Efficacité du routeur |
 | `sensor.pvrouter_temp_1` | TEMP1 | °C | Température sonde 1 |
-| `sensor.pvrouter_temp_2` | TEMP2 | °C | Température sonde 2 (si présente) |
+| `sensor.pvrouter_temp_2` | TEMP2 | °C | Température sonde 2 |
 | `sensor.pvrouter_temp_ref` | REF_T | °C | Température de référence |
 | `sensor.pvrouter_temp_interne` | T_RTC | °C | Température interne du routeur |
 | `sensor.pvrouter_status_out_1` | STATUS_OUT1 | — | Statut sortie 1 |
@@ -229,19 +260,36 @@ outputs:
 ## 8. Exemples de configuration carte
 
 ```yaml
-# Configuration complète — 2 ballons + borne VE
+# 1 ballon simple
 type: custom:pvrouter-card
 entity_prefix: pvrouter
-home_entity: "sensor.home_conso_live"
+outputs:
+  - id: "1"
+    name: "Chauffe-eau"
+    icon: "ballon.png"
+    enabled: true
+    temp_entity: "sensor.temp_chauffe_eau"
+  - id: "1.1"
+    enabled: false
+  - id: "2"
+    enabled: false
+```
+
+```yaml
+# 2 ballons (mode dual) + borne VE avec températures
+type: custom:pvrouter-card
+entity_prefix: pvrouter
 outputs:
   - id: "1"
     name: "Ballon Cuisine"
     icon: "ballon.png"
     enabled: true
+    temp_entity: "sensor.temp_ballon_cuisine"
   - id: "1.1"
     name: "Ballon SDB"
     icon: "ballon.png"
     enabled: true
+    temp_entity: "sensor.temp_ballon_sdb"
   - id: "2"
     name: "Borne VE"
     icon: "charge.png"
@@ -249,7 +297,7 @@ outputs:
 ```
 
 ```yaml
-# Configuration simple — 1 ballon uniquement
+# Sortie 1 + sortie 2, sans température
 type: custom:pvrouter-card
 entity_prefix: pvrouter
 outputs:
@@ -259,19 +307,6 @@ outputs:
     enabled: true
   - id: "1.1"
     enabled: false
-  - id: "2"
-    enabled: false
-```
-
-```yaml
-# Sans entité maison personnalisée (utilise le defaut)
-type: custom:pvrouter-card
-entity_prefix: pvrouter
-outputs:
-  - id: "1"
-    name: "Chauffe-eau"
-    icon: "ballon.png"
-    enabled: true
   - id: "2"
     name: "Piscine"
     icon: "charge.png"
