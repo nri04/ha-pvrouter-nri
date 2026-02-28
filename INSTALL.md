@@ -67,6 +67,17 @@ config/custom_components/pvrouter/
 La carte **pvrouter-card** est enregistrée automatiquement au démarrage.
 Elle apparaît dans le sélecteur de cartes sous **"PvRouter NRI"**.
 
+### Layout de la carte
+
+```
+[Sortie 1]  ◀◀ ──┐                        ┌── ▶▶ [Réseau]
+                  │   [Solaire]            │
+[Sortie 1.1]◀◀ ──┤       ▼▼               │
+                  │   [Routeur]            │
+[Sortie 2]  ◀◀ ──┘   [Efficacité]         └── ▶▶ [Maison]
+                      [T° interne]
+```
+
 ### Configuration YAML minimale
 
 ```yaml
@@ -114,7 +125,7 @@ outputs:
 | `entity_prefix` | string | `pvrouter` | Préfixe des entités HA |
 | `outputs` | liste | — | Configuration des sorties (voir ci-dessous) |
 
-> **Note :** La consommation maison est calculée automatiquement depuis les capteurs du routeur (`PROD + PIN - POUT`). Aucune entité externe n'est nécessaire.
+> **Note :** La consommation maison est calculée automatiquement : `PROD + PIN - POUT`. La température interne du routeur (`T_RTC`) est affichée automatiquement sous l'efficacité si disponible. Aucune entité externe n'est nécessaire pour ces valeurs.
 
 ### Paramètres par sortie
 
@@ -124,7 +135,7 @@ outputs:
 | `name` | string | `"Sortie X"` | Nom affiché sous l'icône |
 | `icon` | string | `"ballon.png"` | Fichier image dans `www/` |
 | `enabled` | boolean | `true` | `false` pour masquer la sortie |
-| `temp_entity` | string | — | Entité HA de température à afficher (ex: `sensor.temp_ballon`) |
+| `temp_entity` | string | — | Entité HA de température optionnelle (ex: `sensor.temp_ballon`). Peut être n'importe quel capteur HA, interne ou externe au plugin. |
 
 ### IDs de sortie
 
@@ -148,6 +159,16 @@ Identique à l'application mobile SmartPvRouter :
 | True | True | — | 0 W (ballon), sortie 2 = min(POUT, LOAD2) |
 
 Consommation maison : `PROD + PIN - POUT`
+
+### Affichages automatiques (sans configuration)
+
+| Zone | Valeur | Source |
+|------|--------|--------|
+| Solaire | Production instantanée | `PROD` |
+| Routeur | Efficacité | `EFF` |
+| Routeur | Température interne | `T_RTC` (masqué si indisponible) |
+| Réseau | Puissance + Import/Export | `PIN` |
+| Maison | Consommation calculée | `PROD + PIN - POUT` |
 
 ### Flèches animées
 
@@ -217,7 +238,7 @@ outputs:
 | `sensor.pvrouter_temp_1` | TEMP1 | °C | Température sonde 1 |
 | `sensor.pvrouter_temp_2` | TEMP2 | °C | Température sonde 2 |
 | `sensor.pvrouter_temp_ref` | REF_T | °C | Température de référence |
-| `sensor.pvrouter_temp_interne` | T_RTC | °C | Température interne du routeur |
+| `sensor.pvrouter_temp_interne` | T_RTC | °C | Température interne du routeur (affichée automatiquement dans la carte) |
 | `sensor.pvrouter_status_out_1` | STATUS_OUT1 | — | Statut sortie 1 |
 | `sensor.pvrouter_status_out_2` | STATUS_OUT2 | — | Statut sortie 2 |
 | `sensor.pvrouter_load_1_satured` | LOAD1_SATURED | — | Sortie 1 saturée |
@@ -260,7 +281,7 @@ outputs:
 ## 8. Exemples de configuration carte
 
 ```yaml
-# 1 ballon simple
+# 1 ballon simple avec température
 type: custom:pvrouter-card
 entity_prefix: pvrouter
 outputs:
