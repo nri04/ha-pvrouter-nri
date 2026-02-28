@@ -18,5 +18,6 @@ Intégration personnalisée pour superviser et piloter les routeurs solaires **S
 1. Allez dans **Paramètres** -> **Appareils et Services** -> **Ajouter une intégration**.
 2. Cherchez **PvRouter NRI**.
 
-3. Entrez le préfixe MQTT de votre appareil (ex: `PVROUTER005`).
+3. Entrez le préfixe MQTT de votre appareil (ex: `PVR-XXX`).
+
 
