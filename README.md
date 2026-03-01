@@ -30,6 +30,17 @@ Intégration personnalisée pour superviser et piloter les routeurs solaires **S
 
 3. Entrez le préfixe MQTT de votre appareil (ex: `PVR-XXX`).
 
+### Images
+<p align="center">
+  <img src="docs/1.png" width="400" alt="PvRouter NRI Card">
+</p>
+<p align="center">
+  <img src="docs/2.png" width="400" alt="PvRouter NRI Card">
+</p>
+<p align="center">
+  <img src="docs/3.png" width="600" alt="PvRouter NRI Card">
+</p>
+
 
 
 
