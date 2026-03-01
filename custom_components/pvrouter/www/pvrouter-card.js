@@ -291,12 +291,11 @@ class PvRouterCard extends HTMLElement {
       t <= thrH ? "#e67e22" :
                   "#e74c3c";
 
-    // ── Topic MQTT pour commandes directes depuis la carte ──────
-    const mqttPrefix = this.config?.mqtt_prefix || null;
+    // ── Commandes MQTT — utilise entity_prefix (= coordinator.prefix) ──
+    // Fonctionne pour pvrouter005/BOOST comme pour PVR-MAC/BOOST
     const mqttPublish = (suffix, payload) => {
-      if (!mqttPrefix) return;
       hass.callService("mqtt", "publish", {
-        topic: `${mqttPrefix}/${suffix}`,
+        topic: `${p}/${suffix}`,
         payload: String(payload)
       });
     };
@@ -449,15 +448,13 @@ class PvRouterCard extends HTMLElement {
         <!-- BOOST -->
         ${(() => {
           const bStatusCls = boostOn ? "boost-on" : "boost-off";
-          const bControls  = mqttPrefix
-            ? `<div class="boost-controls">
-                <input type="number" class="boost-dur" id="pvr-boost-dur"
-                  min="1" max="240" value="30" placeholder="min">
-                <span class="boost-unit">min</span>
-                <button class="boost-btn boost-btn-on" id="pvr-boost-on">ON</button>
-                <button class="boost-btn boost-btn-off" id="pvr-boost-off">OFF</button>
-               </div>`
-            : `<span class="boost-hint">Configurez mqtt_prefix pour activer</span>`;
+          const bControls = `<div class="boost-controls">
+              <input type="number" class="boost-dur" id="pvr-boost-dur"
+                min="1" max="240" value="30" placeholder="min">
+              <span class="boost-unit">min</span>
+              <button class="boost-btn boost-btn-on" id="pvr-boost-on">ON</button>
+              <button class="boost-btn boost-btn-off" id="pvr-boost-off">OFF</button>
+            </div>`;
           return `<div class="boost-bar">
             <div class="boost-status ${bStatusCls}">⚡ Boost ${boostOn ? "ACTIF" : "inactif"}</div>
             ${bControls}
@@ -537,17 +534,15 @@ class PvRouterCard extends HTMLElement {
       </ha-card>`;
 
     // ── Listeners boost (après render du DOM) ─────────────────────
-    if (mqttPrefix) {
-      const btnOn  = this.querySelector("#pvr-boost-on");
-      const btnOff = this.querySelector("#pvr-boost-off");
-      if (btnOn) btnOn.addEventListener("click", () => {
-        const dur = parseInt(this.querySelector("#pvr-boost-dur")?.value || "30");
-        mqttPublish("BOOST", isNaN(dur) || dur <= 0 ? "1" : String(dur));
-      });
-      if (btnOff) btnOff.addEventListener("click", () => {
-        mqttPublish("BOOST", "0");
-      });
-    }
+    const btnOn  = this.querySelector("#pvr-boost-on");
+    const btnOff = this.querySelector("#pvr-boost-off");
+    if (btnOn) btnOn.addEventListener("click", () => {
+      const dur = parseInt(this.querySelector("#pvr-boost-dur")?.value || "30");
+      mqttPublish("BOOST", isNaN(dur) || dur <= 0 ? "1" : String(dur));
+    });
+    if (btnOff) btnOff.addEventListener("click", () => {
+      mqttPublish("BOOST", "0");
+    });
   }
 }
 
