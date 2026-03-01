@@ -12,10 +12,11 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 
 class PvRouterBallonSwitch(SwitchEntity):
-    """Switch pilotant le relais de sélection du ballon.
+    """Switch de sélection du ballon actif.
 
-    ON  → Ballon B actif (résistance secondaire)
-    OFF → Ballon A actif (résistance principale)
+    Le topic SWITCH est un pulse : envoyer "1" change l'état
+    côté firmware (ballon A → B ou B → A).
+    Le state HA reflète BALLON en lecture seule.
     """
 
     def __init__(self, coordinator):
@@ -35,9 +36,11 @@ class PvRouterBallonSwitch(SwitchEntity):
         return self.coordinator.data.get("BALLON") == 1
 
     async def async_turn_on(self, **kwargs):
+        # Pulse "1" → le firmware bascule vers ballon B
         topic = TOPIC_SWITCH.format(self.coordinator.prefix)
         await async_publish(self.hass, topic, "1")
 
     async def async_turn_off(self, **kwargs):
+        # Pulse "1" → le firmware bascule vers ballon A
         topic = TOPIC_SWITCH.format(self.coordinator.prefix)
-        await async_publish(self.hass, topic, "0")
+        await async_publish(self.hass, topic, "1")
