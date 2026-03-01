@@ -10,7 +10,7 @@ from .coordinator import PvRouterCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = ["sensor", "switch", "button"]
+PLATFORMS = ["sensor", "switch", "button", "select"]
 CARD_URL = "/pvrouter-nri/pvrouter-card.js"
 WWW_URL = "/pvrouter-nri"
 

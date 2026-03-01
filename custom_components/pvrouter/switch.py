@@ -1,37 +1,30 @@
 # -*- coding: utf-8 -*-
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.components.mqtt import async_publish
-from .const import DOMAIN, TOPIC_SETMODE, TOPIC_SWITCH
+from .const import DOMAIN, TOPIC_SWITCH
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id]
     async_add_entities([
-        PvRouterSwitch(
-            coordinator, "Switch Ballon", "SWITCH", "1", "0"
-        ),
-        PvRouterModeSwitch(coordinator, "Mode Automatique", "11"),
-        PvRouterModeSwitch(coordinator, "Activation Forcee", "22"),
-        PvRouterModeSwitch(coordinator, "Desactiver Sorties", "00"),
-        PvRouterOutput1Switch(coordinator),
+        PvRouterBallonSwitch(coordinator),
     ])
 
 
-class PvRouterSwitch(SwitchEntity):
+class PvRouterBallonSwitch(SwitchEntity):
+    """Switch pilotant le relais de sélection du ballon.
 
-    def __init__(
-        self, coordinator, name, topic_suffix,
-        payload_on, payload_off
-    ):
+    ON  → Ballon B actif (résistance secondaire)
+    OFF → Ballon A actif (résistance principale)
+    """
+
+    def __init__(self, coordinator):
         self.coordinator = coordinator
-        self._attr_name = f"PvRouter {name}"
-        self._topic = f"{coordinator.prefix}/{topic_suffix}"
-        self._payload_on = payload_on
-        self._payload_off = payload_off
+        self._attr_name = "PvRouter Switch Ballon"
         self._attr_unique_id = (
-            f"{coordinator.prefix}_"
-            f"{name.lower().replace(' ', '_')}"
+            f"{coordinator.prefix}_switch_ballon"
         )
+        self._attr_icon = "mdi:water-boiler"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, coordinator.prefix)},
             "name": "PvRouter NRI",
@@ -42,76 +35,9 @@ class PvRouterSwitch(SwitchEntity):
         return self.coordinator.data.get("BALLON") == 1
 
     async def async_turn_on(self, **kwargs):
-        await async_publish(
-            self.hass, self._topic, self._payload_on
-        )
+        topic = TOPIC_SWITCH.format(self.coordinator.prefix)
+        await async_publish(self.hass, topic, "1")
 
     async def async_turn_off(self, **kwargs):
-        await async_publish(
-            self.hass, self._topic, self._payload_off
-        )
-
-
-class PvRouterModeSwitch(SwitchEntity):
-
-    def __init__(self, coordinator, name, code_on):
-        self.coordinator = coordinator
-        self._attr_name = f"PvRouter {name}"
-        self._code_on = code_on
-        self._attr_unique_id = (
-            f"{coordinator.prefix}_"
-            f"{name.lower().replace(' ', '_')}"
-        )
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, coordinator.prefix)},
-            "name": "PvRouter NRI",
-        }
-
-    @property
-    def is_on(self):
-        return (
-            str(self.coordinator.data.get("MODEINFO", ""))
-            == self._code_on
-        )
-
-    async def async_turn_on(self, **kwargs):
-        topic = TOPIC_SETMODE.format(self.coordinator.prefix)
-        await async_publish(self.hass, topic, self._code_on)
-
-    async def async_turn_off(self, **kwargs):
-        topic = TOPIC_SETMODE.format(self.coordinator.prefix)
-        await async_publish(self.hass, topic, "33")
-
-
-class PvRouterOutput1Switch(SwitchEntity):
-
-    def __init__(self, coordinator):
-        self.coordinator = coordinator
-        self._attr_name = (
-            "PvRouter Activation Forcee Sortie 1"
-        )
-        self._attr_unique_id = (
-            f"{coordinator.prefix}_sortie1_force"
-        )
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, coordinator.prefix)},
-            "name": "PvRouter NRI",
-        }
-
-    @property
-    def is_on(self):
-        try:
-            mode = int(
-                self.coordinator.data.get("MODEINFO", 0)
-            )
-            return (mode % 10) == 2
-        except (ValueError, TypeError):
-            return False
-
-    async def async_turn_on(self, **kwargs):
-        topic = TOPIC_SETMODE.format(self.coordinator.prefix)
-        await async_publish(self.hass, topic, "32")
-
-    async def async_turn_off(self, **kwargs):
-        topic = TOPIC_SETMODE.format(self.coordinator.prefix)
-        await async_publish(self.hass, topic, "33")
+        topic = TOPIC_SWITCH.format(self.coordinator.prefix)
+        await async_publish(self.hass, topic, "0")

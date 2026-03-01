@@ -3,7 +3,7 @@ from homeassistant.components.button import (
     ButtonEntity, ButtonDeviceClass
 )
 from homeassistant.components.mqtt import async_publish
-from .const import DOMAIN, TOPIC_RESET, TOPIC_SWITCH
+from .const import DOMAIN, TOPIC_RESET
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
@@ -12,10 +12,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
         PvRouterButton(
             coordinator, "Reboot",
             TOPIC_RESET, "1", ButtonDeviceClass.RESTART
-        ),
-        PvRouterButton(
-            coordinator, "Switch Ballon Touch",
-            TOPIC_SWITCH, "1", ButtonDeviceClass.UPDATE
         ),
     ])
 
