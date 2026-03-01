@@ -85,10 +85,12 @@ async def async_setup_entry(hass, entry, async_add_entities):
         ("Firmware", "Version", None, None, None),
     ]
 
-    async_add_entities([
+    entities = [
         PvRouterSensor(coordinator, name, key, unit, dc, sc)
         for name, key, unit, dc, sc in sensors_definitions
-    ])
+    ]
+    entities.append(PvRouterDataSensor(coordinator))
+    async_add_entities(entities)
 
 
 class PvRouterSensor(CoordinatorEntity, SensorEntity):
@@ -118,6 +120,47 @@ class PvRouterSensor(CoordinatorEntity, SensorEntity):
         if self.coordinator.data:
             return self.coordinator.data.get(self._json_key)
         return None
+
+    @property
+    def available(self) -> bool:
+        return (
+            self.coordinator.last_update_success
+            and bool(self.coordinator.data)
+        )
+
+
+class PvRouterDataSensor(CoordinatorEntity, SensorEntity):
+    """Sensor unique exposant tout le payload JSON en attributs.
+
+    La carte JS lit depuis ce sensor pour garantir
+    que toutes les valeurs viennent du meme message MQTT.
+    """
+
+    def __init__(self, coordinator):
+        super().__init__(coordinator)
+        self._attr_name = "PvRouter Data"
+        self._attr_unique_id = f"{coordinator.prefix}_data"
+        self._attr_icon = "mdi:solar-power"
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, coordinator.prefix)},
+            "name": "PvRouter NRI",
+            "manufacturer": "Smart Pv-Router",
+            "model": coordinator.prefix,
+        }
+
+    @property
+    def native_value(self):
+        """Timestamp de la derniere mise a jour."""
+        if self.coordinator.data:
+            return self.coordinator.data.get("TIME", "ok")
+        return None
+
+    @property
+    def extra_state_attributes(self):
+        """Tout le payload JSON disponible en attributs."""
+        if self.coordinator.data:
+            return dict(self.coordinator.data)
+        return {}
 
     @property
     def available(self) -> bool:
