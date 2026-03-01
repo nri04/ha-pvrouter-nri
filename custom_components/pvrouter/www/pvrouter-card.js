@@ -291,6 +291,16 @@ class PvRouterCard extends HTMLElement {
       t <= thrH ? "#e67e22" :
                   "#e74c3c";
 
+    // ── Topic MQTT pour commandes directes depuis la carte ──────
+    const mqttPrefix = this.config?.mqtt_prefix || null;
+    const mqttPublish = (suffix, payload) => {
+      if (!mqttPrefix) return;
+      hass.callService("mqtt", "publish", {
+        topic: `${mqttPrefix}/${suffix}`,
+        payload: String(payload)
+      });
+    };
+
     // ── Données ──────────────────────────────────────────────────
     const prod  = getF("production");
     const eff   = getF("efficiency");
@@ -306,6 +316,8 @@ class PvRouterCard extends HTMLElement {
     const load0 = getF("load_11");
 
     const poutVal   = getF("pout");
+    const boostRaw  = getS("boost");  // sensor.pvrouter_boost : "True"/"False"/"1"/"0"
+    const boostOn   = boostRaw === "True" || boostRaw === "1" || boostRaw === "true";
     const homeW     = (poutVal !== null && pin !== null && prod !== null)
       ? Math.round(prod + pin - poutVal) : null;
 
@@ -434,6 +446,24 @@ class PvRouterCard extends HTMLElement {
 
         </div>
 
+        <!-- BOOST -->
+        ${(() => {
+          const bStatusCls = boostOn ? "boost-on" : "boost-off";
+          const bControls  = mqttPrefix
+            ? `<div class="boost-controls">
+                <input type="number" class="boost-dur" id="pvr-boost-dur"
+                  min="1" max="240" value="30" placeholder="min">
+                <span class="boost-unit">min</span>
+                <button class="boost-btn boost-btn-on" id="pvr-boost-on">ON</button>
+                <button class="boost-btn boost-btn-off" id="pvr-boost-off">OFF</button>
+               </div>`
+            : `<span class="boost-hint">Configurez mqtt_prefix pour activer</span>`;
+          return `<div class="boost-bar">
+            <div class="boost-status ${bStatusCls}">⚡ Boost ${boostOn ? "ACTIF" : "inactif"}</div>
+            ${bControls}
+          </div>`;
+        })()}
+
         <style>
           .pv-title { font-weight:bold; font-size:.95em; padding:12px 16px 4px; }
           .pv-wrap  { display:grid; grid-template-columns:1fr auto 1fr;
@@ -475,8 +505,49 @@ class PvRouterCard extends HTMLElement {
           .al { color:var(--c,#03a9f4); animation:fl .8s ease-in-out infinite; }
           .ar { color:var(--c,#03a9f4); animation:fr .8s ease-in-out infinite; }
           .ad { color:#f4c403;          animation:fd .8s ease-in-out infinite; }
+
+          /* ── Boost ── */
+          .boost-bar {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            padding: 8px 14px 12px; border-top: 1px solid #333; margin-top: 4px;
+          }
+          .boost-status {
+            font-size: .82em; font-weight: bold; padding: 4px 10px;
+            border-radius: 20px; letter-spacing: .04em;
+          }
+          .boost-on  { background: #FF9800; color: #000; }
+          .boost-off { background: #333;    color: #888; }
+          .boost-controls {
+            display: flex; align-items: center; gap: 6px; margin-left: auto;
+          }
+          .boost-dur {
+            width: 56px; text-align: center; padding: 4px 6px; font-size: .85em;
+            background: #2a2a2a; color: #fff; border: 1px solid #555;
+            border-radius: 4px;
+          }
+          .boost-unit { font-size: .78em; color: #888; }
+          .boost-btn {
+            padding: 4px 12px; border: none; border-radius: 4px;
+            font-size: .82em; font-weight: bold; cursor: pointer;
+          }
+          .boost-btn-on  { background: #FF9800; color: #000; }
+          .boost-btn-off { background: #555;    color: #ccc; }
+          .boost-hint    { font-size: .75em; color: #666; margin-left: auto; }
         </style>
       </ha-card>`;
+
+    // ── Listeners boost (après render du DOM) ─────────────────────
+    if (mqttPrefix) {
+      const btnOn  = this.querySelector("#pvr-boost-on");
+      const btnOff = this.querySelector("#pvr-boost-off");
+      if (btnOn) btnOn.addEventListener("click", () => {
+        const dur = parseInt(this.querySelector("#pvr-boost-dur")?.value || "30");
+        mqttPublish("BOOST", isNaN(dur) || dur <= 0 ? "1" : String(dur));
+      });
+      if (btnOff) btnOff.addEventListener("click", () => {
+        mqttPublish("BOOST", "0");
+      });
+    }
   }
 }
 
