@@ -273,13 +273,38 @@ class PvRouterCard extends HTMLElement {
     const base  = "/pvrouter-nri";
 
     // ── Helpers ─────────────────────────────────────────────────
+    // sensor.{p}_data expose tout le JSON en attributs (source atomique)
+    const dataSensor = hass.states[`sensor.${p}_data`];
+    const raw = dataSensor?.attributes || {};
+    const hasRaw = Object.keys(raw).length > 1; // > 1 car entity_id toujours présent
+
+    // Mapping clé carte → clé JSON firmware (ex: "temp_interne" → "TEMP_RTC")
+    const KEY_MAP = {
+      production: "PROD", efficiency: "EFF", pin: "PIN", pout: "POUT",
+      p1: "P1", p2: "P2", load_1: "LOAD1", load_2: "LOAD2",
+      load_10: "LOAD10", load_11: "LOAD11",
+      status_out_1: "STATUS_OUT1", status_out_2: "STATUS_OUT2",
+      load_1_satured: "LOAD1_SATURED", load_2satured: "LOAD2SATURED",
+      ballon_actif: "BALLON", boost: "BOOST", temp_interne: "TEMP_RTC",
+    };
+
     const getF = (key) => {
+      if (hasRaw) {
+        const jk = KEY_MAP[key] || key.toUpperCase();
+        const v = parseFloat(raw[jk]);
+        if (!isNaN(v)) return v;
+      }
       const s = hass.states[`sensor.${p}_${key}`];
       if (!s || ["unavailable","unknown","none"].includes(s.state)) return null;
       const v = parseFloat(s.state); return isNaN(v) ? null : v;
     };
     const getS = (key) => {
-      const s = hass.states[`sensor.${p}_${key}`]; return s ? s.state : null;
+      if (hasRaw) {
+        const jk = KEY_MAP[key] || key.toUpperCase();
+        if (raw[jk] !== undefined) return String(raw[jk]);
+      }
+      const s = hass.states[`sensor.${p}_${key}`];
+      return s ? s.state : null;
     };
     const fmt = (v) => {
       if (v === null) return "—";
@@ -322,13 +347,29 @@ class PvRouterCard extends HTMLElement {
 
     const dual      = load !== null && load > 0 && load0 !== null && load0 > 0;
     const ballonInt = bal !== null ? parseInt(bal) : 0;
+    const pout      = poutVal ?? 0;
+    const load1v    = (getF("load_1")) ?? 0;
+    const load2v    = (getF("load_2")) ?? 0;
 
+    // Logique exacte HomeViewModel.kt :
+    // puissance ballon actif = min(POUT, LOAD1)
+    // puissance sortie 2     = POUT - LOAD1 - PIN  (si POUT > LOAD1)
     let pwr_1_0 = 0, pwr_1_1 = 0, pwr_2 = 0;
+
     if (s1on && !s1sat) {
-      if (!dual || ballonInt === 0) pwr_1_0 = p1 ?? 0;
-      else                          pwr_1_1 = p1 ?? 0;
+      const p1out = pout <= load1v ? pout : load1v;
+      if (!dual || ballonInt === 0) pwr_1_0 = p1out;
+      else                          pwr_1_1 = p1out;
     }
-    pwr_2   = (s2on && !s2sat) ? (p2 ?? 0) : 0;
+
+    if (s2on && !s2sat) {
+      if (pout > load1v) {
+        // sortie 2 = ce qui reste après sortie 1 et réseau
+        pwr_2 = Math.max(0, pout - load1v - Math.max(0, pin ?? 0));
+      }
+      // si POUT <= LOAD1, toute la puissance va à la sortie 1, sortie 2 = 0
+    }
+
     pwr_1_0 = Math.max(0, pwr_1_0);
     pwr_1_1 = Math.max(0, pwr_1_1);
     pwr_2   = Math.max(0, pwr_2);
