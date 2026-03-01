@@ -4,13 +4,10 @@
   "version": "1.0.4",
   "config_flow": true,
   "iot_class": "local_push",
-  "documentation": "https://github.com/nri04/ha-pvrouter-nri",
-  "issue_tracker": "https://github.com/nri04/ha-pvrouter-nri/issues",
-  "codeowners": ["@nri04"],
+  "dependencies": ["http", "mqtt"],
+  "after_dependencies": ["mqtt"],
   "requirements": [],
-  "dependencies": ["mqtt"],
-  "after_dependencies": ["mqtt"]
+  "codeowners": ["@nri04"],
+  "documentation": "https://github.com/nri04/ha-pvrouter-nri",
+  "issue_tracker": "https://github.com/nri04/ha-pvrouter-nri/issues"
 }
-
-
-
