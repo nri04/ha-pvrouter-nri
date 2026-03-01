@@ -1,0 +1,25 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create release zip
+        run: |
+          zip -r pvrouter_nri.zip \
+            custom_components/pvrouter/ \
+            hacs.json
+
+      - name: Upload zip to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: pvrouter_nri.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
