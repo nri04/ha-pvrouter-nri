@@ -1,7 +1,6 @@
 {
   "name": "PvRouter NRI",
   "render_readme": true,
-  "homeassistant": "2023.1.0",
-  "zip_release": true,
-  "filename": "pvrouter_nri.zip"
+  "homeassistant": "2023.1.0"
 }
+
