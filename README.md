@@ -32,14 +32,15 @@ Intégration personnalisée pour superviser et piloter les routeurs solaires **S
 
 ### Images
 <p align="center">
-  <img src="docs/1.png" width="400" alt="PvRouter NRI Card">
+  <img src="https://raw.githubusercontent.com/nri04/ha-pvrouter-nri/main/docs/1.png" width="400" alt="PvRouter NRI Card">
 </p>
 <p align="center">
-  <img src="docs/2.png" width="400" alt="PvRouter NRI Card">
+  <img src="https://raw.githubusercontent.com/nri04/ha-pvrouter-nri/main/docs/2.png" width="400" alt="PvRouter NRI Card">
 </p>
 <p align="center">
-  <img src="docs/3.png" width="600" alt="PvRouter NRI Card">
+  <img src="https://raw.githubusercontent.com/nri04/ha-pvrouter-nri/main/docs/3.png" width="600" alt="PvRouter NRI Card">
 </p>
+
 
 
 
