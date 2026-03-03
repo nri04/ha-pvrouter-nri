@@ -266,7 +266,7 @@ class PvRouterCard extends HTMLElement {
     const p    = this.config?.entity_prefix || "pvrouter";
     const outs = this.config?.outputs ||
       [{ id: "1", name: "Sortie 1", icon: "ballon.png", enabled: true }];
-    const homeEntity = this.config?.home_entity || "sensor.home_conso_live";
+    const homeEntity = this.config?.home_entity || null;
     const thr   = this.config?.temp_thresholds || {};
     const thrW  = thr.warm ?? 30;
     const thrH  = thr.hot  ?? 50;
@@ -349,12 +349,15 @@ class PvRouterCard extends HTMLElement {
     const prodV = prod    ?? 0;
 
     let homeW = null;
-    const homeState = hass.states[homeEntity];
-    if (homeState && !["unavailable","unknown","none"].includes(homeState.state)) {
-      const hv = parseFloat(homeState.state);
-      if (!isNaN(hv)) homeW = Math.round(hv);
+    if (homeEntity) {
+      const homeState = hass.states[homeEntity];
+      if (homeState && !["unavailable","unknown","none"].includes(homeState.state)) {
+        const hv = parseFloat(homeState.state);
+        if (!isNaN(hv)) homeW = Math.max(0, Math.round(hv));
+      }
     }
-    if (homeW === null) homeW = Math.max(0, Math.round(prodV - pout + pinV));  // coerceAtLeast(0)
+    // Formule firmware : PROD + PIN - POUT (coerceAtLeast 0)
+    if (homeW === null) homeW = Math.max(0, Math.round(prodV + pinV - pout));
 
     // ── Puissances sorties : logique exacte VB/Kotlin ─────────────
     const load1v    = getF("load_1") ?? 0;  // LOAD1 : max sortie 1
