@@ -15,223 +15,164 @@
 
 // ─────────────────────────────────────────────────────────────────
 //  ÉDITEUR LOVELACE
-//  Règles HA : pas de shadowRoot, setConfig + hass setter, fire config-changed
+//  Règle clé : on ne reconstruit JAMAIS un champ qui existe déjà.
+//  Les inputs utilisent "change" (blur/Enter) — pas "input" (frappe).
+//  Ajout/suppression de sortie = seule opération qui re-render les sorties.
 // ─────────────────────────────────────────────────────────────────
 class PvRouterCardEditor extends HTMLElement {
 
+  set hass(h) {
+    this._hass = h;
+    // Peupler la datalist une seule fois (évite de fermer le dropdown)
+    if (this._built && !this._datalistFilled) this._updateDatalist();
+  }
+
   setConfig(config) {
     this._config = JSON.parse(JSON.stringify(config));
-    this._render();
-  }
-
-  set hass(hass) {
-    this._hass = hass;
-    // Re-render seulement si déjà initialisé pour avoir la liste de sensors
-    if (this._config) this._render();
-  }
-
-  _fire(config) {
-    this.dispatchEvent(new CustomEvent("config-changed",
-      { detail: { config }, bubbles: true, composed: true }));
-  }
-
-  _update(path, value) {
-    const cfg = JSON.parse(JSON.stringify(this._config));
-    const parts = path.split(".");
-    let o = cfg;
-    for (let i = 0; i < parts.length - 1; i++) {
-      if (!o[parts[i]]) o[parts[i]] = {};
-      o = o[parts[i]];
+    if (!this._built) {
+      this._build();
+      this._built = true;
     }
-    o[parts[parts.length - 1]] = value;
-    this._config = cfg;
-    this._fire(cfg);
+    // Jamais de rebuild si déjà construit
   }
 
-  _updateOutput(idx, key, val) {
-    const cfg = JSON.parse(JSON.stringify(this._config));
-    cfg.outputs = cfg.outputs || [];
-    while (cfg.outputs.length <= idx) cfg.outputs.push({});
-    cfg.outputs[idx][key] = val;
-    this._config = cfg;
-    this._fire(cfg);
+  _fire() {
+    this.dispatchEvent(new CustomEvent("config-changed",
+      { detail: { config: this._config }, bubbles: true, composed: true }));
   }
 
-  _addOutput() {
-    const cfg = JSON.parse(JSON.stringify(this._config));
-    cfg.outputs = cfg.outputs || [];
-    cfg.outputs.push({
-      id: String(cfg.outputs.length + 1),
-      name: "Nouvelle sortie",
-      icon: "ballon.png",
-      enabled: false
-    });
-    this._config = cfg;
-    this._fire(cfg);
-    this._render();
+  _updateDatalist() {
+    const dl = this.querySelector("#pvr-sensors");
+    if (!dl || !this._hass) return;
+    const sensors = Object.keys(this._hass.states)
+      .filter(k => k.startsWith("sensor.")).sort();
+    dl.innerHTML = sensors.map(s => "<option value='" + s + "'>").join("");
+    this._datalistFilled = true;
   }
 
-  _delOutput(idx) {
-    const cfg = JSON.parse(JSON.stringify(this._config));
-    cfg.outputs.splice(idx, 1);
-    this._config = cfg;
-    this._fire(cfg);
-    this._render();
-  }
-
-  _render() {
-    const c   = this._config || {};
+  _build() {
+    const c   = this._config;
     const thr = c.temp_thresholds || {};
-    const w   = thr.warm ?? 30;
-    const h   = thr.hot  ?? 50;
-    const outs = c.outputs || [];
 
-    // Autocomplétion sensors HA
-    const sensors = this._hass
-      ? Object.keys(this._hass.states)
-          .filter(k => k.startsWith("sensor.")).sort()
-      : [];
-    const datalist = `<datalist id="pvr-sensors">
-      ${sensors.map(s => `<option value="${s}">`).join("")}
-    </datalist>`;
+    this.innerHTML =
+      "<style>" +
+      "  .pvr-e { font-size:14px; }" +
+      "  .pvr-e h4 { font-size:.8em; text-transform:uppercase; letter-spacing:.08em;" +
+      "    color:#888; margin:14px 0 6px; border-bottom:1px solid #333; padding-bottom:4px; }" +
+      "  .pvr-e .pvr-field { margin-bottom:8px; }" +
+      "  .pvr-e .pvr-field label { display:block; color:#aaa; font-size:12px; margin-bottom:3px; }" +
+      "  .pvr-e input[type=text], .pvr-e input[type=number], .pvr-e select {" +
+      "    width:100%; box-sizing:border-box; background:#2a2a2a; color:#fff;" +
+      "    border:1px solid #555; border-radius:4px; padding:5px 8px; font-size:13px; }" +
+      "  .pvr-e input[type=number] { width:80px; }" +
+      "  .pvr-e .row2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }" +
+      "  .pvr-e .out-block { border:1px solid #444; border-radius:6px; padding:10px; margin-bottom:8px; }" +
+      "  .pvr-e .out-head { display:flex; align-items:center; gap:8px; margin-bottom:8px; }" +
+      "  .pvr-e .out-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; }" +
+      "  .pvr-e .btn-del { background:#c62828; color:#fff; border:none; border-radius:4px;" +
+      "    padding:2px 8px; cursor:pointer; margin-left:auto; font-size:13px; }" +
+      "  .pvr-e .btn-add { background:#0288d1; color:#fff; border:none; border-radius:6px;" +
+      "    padding:7px 14px; cursor:pointer; margin-top:6px; width:100%; font-size:13px; }" +
+      "</style>" +
+      "<datalist id='pvr-sensors'></datalist>" +
+      "<div class='pvr-e'>" +
 
-    const outRows = outs.map((o, i) => `
-      <div style="border:1px solid #444;border-radius:6px;padding:10px;margin-bottom:8px">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-          <b style="flex:1">Sortie ${i + 1}</b>
-          <label style="display:flex;align-items:center;gap:4px;cursor:pointer">
-            <input type="checkbox" class="pvr-out-enabled" data-i="${i}"
-              ${o.enabled !== false ? "checked" : ""}> Activée
-          </label>
-          <button class="pvr-del" data-i="${i}"
-            style="background:#c62828;color:#fff;border:none;border-radius:4px;
-                   padding:2px 8px;cursor:pointer">✕</button>
-        </div>
-        <div style="display:grid;grid-template-columns:100px 1fr;gap:5px 8px;align-items:center">
-          <label style="color:#aaa">ID</label>
-          <input class="pvr-inp" type="text" data-i="${i}" data-k="id"
-            value="${o.id || ""}">
-          <label style="color:#aaa">Nom</label>
-          <input class="pvr-inp" type="text" data-i="${i}" data-k="name"
-            value="${o.name || ""}">
-          <label style="color:#aaa">Icône</label>
-          <input class="pvr-inp" type="text" data-i="${i}" data-k="icon"
-            value="${o.icon || ""}">
-          <label style="color:#aaa">Capteur temp.</label>
-          <input class="pvr-inp" type="text" list="pvr-sensors"
-            data-i="${i}" data-k="temp_entity"
-            value="${o.temp_entity || ""}" placeholder="sensor.…">
-        </div>
-      </div>`).join("");
+      "<h4>Général</h4>" +
+      "<div class='pvr-field'><label>Préfixe entités</label>" +
+      "<input id='pvr-prefix' type='text' value='" + (c.entity_prefix || "pvrouter") + "'></div>" +
 
-    this.innerHTML = `
-      <style>
-        .pvr-section {
-          background:var(--card-background-color,#1e1e1e);
-          border:1px solid var(--divider-color,#333);
-          border-radius:8px; padding:12px; margin-bottom:12px;
-        }
-        .pvr-h3 {
-          font-size:.8em; text-transform:uppercase; letter-spacing:.08em;
-          color:var(--secondary-text-color,#888); margin:0 0 10px;
-        }
-        .pvr-grid { display:grid; grid-template-columns:110px 1fr; gap:6px 8px; align-items:center; }
-        .pvr-grid label { color:var(--secondary-text-color,#aaa); }
-        .pvr-inp {
-          width:100%; box-sizing:border-box;
-          background:var(--input-fill-color,#2a2a2a);
-          color:var(--primary-text-color,#fff);
-          border:1px solid var(--divider-color,#444);
-          border-radius:4px; padding:5px 8px; font-size:13px;
-        }
-        .pvr-num { width:72px !important; }
-        .pvr-thr { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
-        .pvr-thr label { display:flex; align-items:center; gap:6px; color:var(--secondary-text-color,#aaa); }
-        .pvr-dot { width:11px; height:11px; border-radius:50%; display:inline-block; }
-        .pvr-preview { display:flex; gap:8px; margin-top:8px; font-size:.8em; align-items:center;
-                        color:var(--secondary-text-color,#aaa); flex-wrap:wrap; }
-        .pvr-sw { width:13px; height:13px; border-radius:3px; }
-        .pvr-add {
-          background:var(--primary-color,#03a9f4); color:#fff;
-          border:none; border-radius:6px; padding:7px 14px;
-          cursor:pointer; margin-top:4px; font-size:.85em;
-        }
-      </style>
-      ${datalist}
+      "<div class='pvr-field'><label>Entité maison</label>" +
+      "<input id='pvr-home' type='text' list='pvr-sensors' value='" + (c.home_entity || "") + "' placeholder='sensor.…'></div>" +
 
-      <div class="pvr-section">
-        <p class="pvr-h3">Général</p>
-        <div class="pvr-grid">
-          <label>Préfixe entités</label>
-          <input class="pvr-inp" id="pvr-prefix" type="text"
-            value="${c.entity_prefix || "pvrouter"}">
-          <label>Entité maison</label>
-          <input class="pvr-inp" id="pvr-home" type="text" list="pvr-sensors"
-            value="${c.home_entity || ""}" placeholder="sensor.…">
-        </div>
-      </div>
+      "<h4>Paliers température</h4>" +
+      "<div class='row2'>" +
+      "<div class='pvr-field'><label>🔵 Froid &lt; (°C)</label>" +
+      "<input id='pvr-warm' type='number' min='0' max='100' value='" + (thr.warm ?? 30) + "'></div>" +
+      "<div class='pvr-field'><label>🟠 Chaud &lt; (°C)</label>" +
+      "<input id='pvr-hot' type='number' min='0' max='100' value='" + (thr.hot ?? 50) + "'></div>" +
+      "</div>" +
 
-      <div class="pvr-section">
-        <p class="pvr-h3">Paliers de température</p>
-        <div class="pvr-thr">
-          <label>
-            <span class="pvr-dot" style="background:#03a9f4"></span>
-            Froid &lt;
-            <input class="pvr-inp pvr-num" id="pvr-warm" type="number"
-              value="${w}" min="0" max="100"> °C
-          </label>
-          <label>
-            <span class="pvr-dot" style="background:#e67e22"></span>
-            Chaud &lt;
-            <input class="pvr-inp pvr-num" id="pvr-hot" type="number"
-              value="${h}" min="0" max="100"> °C
-          </label>
-          <label>
-            <span class="pvr-dot" style="background:#e74c3c"></span>
-            &gt; seuil → rouge
-          </label>
-        </div>
-        <div class="pvr-preview">
-          Aperçu :
-          <span class="pvr-sw" style="background:#03a9f4"></span>≤ ${w} °C
-          <span class="pvr-sw" style="background:#e67e22"></span>${w}–${h} °C
-          <span class="pvr-sw" style="background:#e74c3c"></span>&gt; ${h} °C
-        </div>
-      </div>
+      "<h4>Sorties</h4>" +
+      "<div id='pvr-outs'></div>" +
+      "<button class='btn-add' id='pvr-add'>+ Ajouter une sortie</button>" +
 
-      <div class="pvr-section">
-        <p class="pvr-h3">Sorties</p>
-        ${outRows}
-        <button class="pvr-add" id="pvr-add">+ Ajouter une sortie</button>
-      </div>
-    `;
+      "</div>";
 
-    // ── Listeners (attachés après render) ──────────────────────────
-    this.querySelector("#pvr-prefix").addEventListener("change", e =>
-      this._update("entity_prefix", e.target.value.trim()));
+    // ── Listeners champs globaux (attachés une fois) ──────────────
+    this.querySelector("#pvr-prefix").addEventListener("change", e => {
+      this._config.entity_prefix = e.target.value.trim();
+      this._fire();
+    });
+    this.querySelector("#pvr-home").addEventListener("change", e => {
+      this._config.home_entity = e.target.value.trim();
+      this._fire();
+    });
+    this.querySelector("#pvr-warm").addEventListener("change", e => {
+      this._config.temp_thresholds = this._config.temp_thresholds || {};
+      this._config.temp_thresholds.warm = Number(e.target.value);
+      this._fire();
+    });
+    this.querySelector("#pvr-hot").addEventListener("change", e => {
+      this._config.temp_thresholds = this._config.temp_thresholds || {};
+      this._config.temp_thresholds.hot = Number(e.target.value);
+      this._fire();
+    });
+    this.querySelector("#pvr-add").addEventListener("click", () => {
+      this._config.outputs = this._config.outputs || [];
+      this._config.outputs.push({
+        id: String(this._config.outputs.length + 1),
+        name: "Sortie " + (this._config.outputs.length + 1),
+        icon: "ballon.png",
+        enabled: false
+      });
+      this._fire();
+      this._renderOuts(); // seule opération qui rebuild les sorties
+    });
 
-    this.querySelector("#pvr-home").addEventListener("change", e =>
-      this._update("home_entity", e.target.value.trim()));
+    this._renderOuts();
+    this._updateDatalist();
+  }
 
-    this.querySelector("#pvr-warm").addEventListener("change", e =>
-      this._update("temp_thresholds.warm", Number(e.target.value)));
+  // Reconstruit uniquement le bloc sorties (add/delete)
+  _renderOuts() {
+    const outs = this._config.outputs || [];
+    const container = this.querySelector("#pvr-outs");
+    container.innerHTML = outs.map((o, i) =>
+      "<div class='out-block' data-i='" + i + "'>" +
+      "  <div class='out-head'>" +
+      "    <b style='flex:1;font-size:13px'>Sortie " + (i + 1) + "</b>" +
+      "    <label style='display:flex;align-items:center;gap:4px;color:#aaa;font-size:12px;cursor:pointer'>" +
+      "      <input type='checkbox' data-i='" + i + "' data-k='enabled'" + (o.enabled !== false ? " checked" : "") + "> Activée" +
+      "    </label>" +
+      "    <button class='btn-del' data-i='" + i + "'>✕</button>" +
+      "  </div>" +
+      "  <div class='out-grid'>" +
+      "    <div class='pvr-field'><label>ID</label><input type='text' data-i='" + i + "' data-k='id' value='" + (o.id || "") + "'></div>" +
+      "    <div class='pvr-field'><label>Nom</label><input type='text' data-i='" + i + "' data-k='name' value='" + (o.name || "") + "'></div>" +
+      "    <div class='pvr-field'><label>Icône</label><input type='text' data-i='" + i + "' data-k='icon' value='" + (o.icon || "") + "'></div>" +
+      "    <div class='pvr-field'><label>Capteur temp.</label><input type='text' list='pvr-sensors' data-i='" + i + "' data-k='temp_entity' value='" + (o.temp_entity || "") + "' placeholder='sensor.…'></div>" +
+      "  </div>" +
+      "</div>"
+    ).join("");
 
-    this.querySelector("#pvr-hot").addEventListener("change", e =>
-      this._update("temp_thresholds.hot", Number(e.target.value)));
+    // Listeners sorties — change (pas input) = déclenche à la perte de focus
+    container.querySelectorAll("input[data-k]").forEach(inp => {
+      inp.addEventListener("change", e => {
+        const i = Number(e.target.dataset.i);
+        const k = e.target.dataset.k;
+        const v = e.target.type === "checkbox" ? e.target.checked : e.target.value;
+        this._config.outputs[i][k] = v;
+        this._fire();
+      });
+    });
 
-    this.querySelector("#pvr-add")
-      .addEventListener("click", () => this._addOutput());
-
-    this.querySelectorAll(".pvr-del").forEach(btn =>
-      btn.addEventListener("click", () => this._delOutput(Number(btn.dataset.i))));
-
-    this.querySelectorAll(".pvr-out-enabled").forEach(cb =>
-      cb.addEventListener("change", e =>
-        this._updateOutput(Number(e.target.dataset.i), "enabled", e.target.checked)));
-
-    this.querySelectorAll(".pvr-inp[data-i]").forEach(inp =>
-      inp.addEventListener("change", e =>
-        this._updateOutput(Number(e.target.dataset.i), e.target.dataset.k, e.target.value)));
+    container.querySelectorAll(".btn-del").forEach(btn => {
+      btn.addEventListener("click", () => {
+        this._config.outputs.splice(Number(btn.dataset.i), 1);
+        this._fire();
+        this._renderOuts(); // rebuild sorties seulement
+      });
+    });
   }
 }
 
@@ -266,7 +207,7 @@ class PvRouterCard extends HTMLElement {
     const p    = this.config?.entity_prefix || "pvrouter";
     const outs = this.config?.outputs ||
       [{ id: "1", name: "Sortie 1", icon: "ballon.png", enabled: true }];
-    const homeEntity = this.config?.home_entity || null;
+    const homeEntity = this.config?.home_entity || "sensor.home_conso_live";
     const thr   = this.config?.temp_thresholds || {};
     const thrW  = thr.warm ?? 30;
     const thrH  = thr.hot  ?? 50;
@@ -284,8 +225,8 @@ class PvRouterCard extends HTMLElement {
       p1: "P1", p2: "P2", load_1: "LOAD1", load_2: "LOAD2",
       load_10: "LOAD10", load_11: "LOAD11",
       status_out_1: "STATUS_OUT1", status_out_2: "STATUS_OUT2",
-      load_1_satured: "LOAD1_SATURED", load_2_satured: "LOAD2_SATURED",
-      ballon_actif: "BALLON", boost: "BOOST", temp_interne: "T_RTC",
+      load_1_satured: "LOAD1_SATURED", load_2satured: "LOAD2SATURED",
+      ballon_actif: "BALLON", boost: "BOOST", temp_interne: "TEMP_RTC",
     };
 
     const getF = (key) => {
@@ -325,80 +266,49 @@ class PvRouterCard extends HTMLElement {
       });
     };
 
-    // ── Données brutes ────────────────────────────────────────────
+    // ── Données ──────────────────────────────────────────────────
     const prod  = getF("production");
     const eff   = getF("efficiency");
-    const pin   = getF("pin");   // PIN : positif = import, négatif = export
+    const pin   = getF("pin");
+    const p1    = getF("p1");
+    const p2    = getF("p2");
     const bal   = getS("ballon_actif");
+    const s1on  = getS("status_out_1")   === "True";
+    const s2on  = getS("status_out_2")   === "True";
+    const s1sat = getS("load_1_satured") === "True";
+    const s2sat = getS("load_2_satured") === "True";
+    const load  = getF("load_10");
+    const load0 = getF("load_11");
 
-    // Accepte "True" / "true" / "1" — firmware peut envoyer n'importe lequel
-    const toBool = (v) => v === "True" || v === "true" || v === "1" || v === true;
-    const s1on  = toBool(getS("status_out_1"));
-    const s2on  = toBool(getS("status_out_2"));
-    const s1sat = toBool(getS("load_1_satured"));
-    const s2sat = toBool(getS("load_2_satured"));
+    const poutVal   = getF("pout");
+    const boostRaw  = getS("boost");  // sensor.pvrouter_boost : "True"/"False"/"1"/"0"
+    const boostOn   = boostRaw === "True" || boostRaw === "1" || boostRaw === "true";
+    const homeW     = (poutVal !== null && pin !== null && prod !== null)
+      ? Math.round(prod + pin - poutVal) : null;
 
-    const poutVal  = getF("pout");
-    const boostRaw = getS("boost");
-    const boostOn  = toBool(boostRaw);
-
-    // ── Maison : formule exacte VB/Kotlin ─────────────────────────
-    // home_conso = PROD - POUT + PIN
-    const pout  = poutVal ?? 0;
-    const pinV  = pin     ?? 0;
-    const prodV = prod    ?? 0;
-
-    let homeW = null;
-    if (homeEntity) {
-      const homeState = hass.states[homeEntity];
-      if (homeState && !["unavailable","unknown","none"].includes(homeState.state)) {
-        const hv = parseFloat(homeState.state);
-        if (!isNaN(hv)) homeW = Math.max(0, Math.round(hv));
-      }
-    }
-    // Formule firmware : PROD + PIN - POUT (coerceAtLeast 0)
-    if (homeW === null) homeW = Math.max(0, Math.round(prodV + pinV - pout));
-
-    // ── Puissances sorties : logique exacte VB/Kotlin ─────────────
-    const load1v    = getF("load_1") ?? 0;  // LOAD1 : max sortie 1
-    const load2v    = getF("load_2") ?? 0;  // LOAD2 : max sortie 2
+    const dual      = load !== null && load > 0 && load0 !== null && load0 > 0;
     const ballonInt = bal !== null ? parseInt(bal) : 0;
+    const pout      = poutVal ?? 0;
+    const load1v    = (getF("load_1")) ?? 0;
+    const load2v    = (getF("load_2")) ?? 0;
 
-    // dual = sortie "1.1" activée dans la config carte (relais bascule)
-    // Les deux ballons sont sur la même sortie physique → jamais simultanés
-    const dual = outs.some(o => o.id === "1.1" && o.enabled !== false);
+    // Logique exacte HomeViewModel.kt :
+    // puissance ballon actif = min(POUT, LOAD1)
+    // puissance sortie 2     = POUT - LOAD1 - PIN  (si POUT > LOAD1)
+    let pwr_1_0 = 0, pwr_1_1 = 0, pwr_2 = 0;
 
-    let pwr_1_0 = 0;  // Ballon 0  (id "1")
-    let pwr_1_1 = 0;  // Ballon 1  (id "1.1")
-    let pwr_2   = 0;  // Sortie 2  (piscine / radiateur…)
+    if (s1on && !s1sat) {
+      const p1out = pout <= load1v ? pout : load1v;
+      if (!dual || ballonInt === 0) pwr_1_0 = p1out;
+      else                          pwr_1_1 = p1out;
+    }
 
-    if (!s1sat && s1on) {
-      if (pout <= load1v) {
-        // toute la puissance vers le ballon actif
-        // si pas de sortie 1.1 configurée (dual=false) → toujours pwr_1_0
-        if (!dual || ballonInt === 0) pwr_1_0 = pout;
-        else                          pwr_1_1 = pout;
-      } else {
-        // ballon actif plafonné à LOAD1
-        if (!dual || ballonInt === 0) pwr_1_0 = load1v;
-        else                          pwr_1_1 = load1v;
-        // surplus → sortie 2 : formule exacte POUT - LOAD1 - PIN
-        if (s2sat || !s2on) {
-          pwr_2 = 0;
-        } else {
-          pwr_2 = Math.max(0, pout - load1v - pinV);
-        }
+    if (s2on && !s2sat) {
+      if (pout > load1v) {
+        // sortie 2 = ce qui reste après sortie 1 et réseau
+        pwr_2 = Math.max(0, pout - load1v - Math.max(0, pin ?? 0));
       }
-    } else {
-      // sortie 1 saturée ou inactive → ballons à 0
-      pwr_1_0 = 0;
-      pwr_1_1 = 0;
-      if (s2sat || !s2on) {
-        pwr_2 = 0;
-      } else {
-        // sortie 2 seule : min(POUT, LOAD2)
-        pwr_2 = pout <= load2v ? pout : load2v;
-      }
+      // si POUT <= LOAD1, toute la puissance va à la sortie 1, sortie 2 = 0
     }
 
     pwr_1_0 = Math.max(0, pwr_1_0);
@@ -408,9 +318,9 @@ class PvRouterCard extends HTMLElement {
     const pwrFor = (id) =>
       id === "1" ? pwr_1_0 : id === "1.1" ? pwr_1_1 : id === "2" ? pwr_2 : 0;
     const onFor  = (id) => {
-      if (id === "1")   return s1on && !s1sat && (!dual || ballonInt === 0) && pwr_1_0 > 0;
-      if (id === "1.1") return s1on && !s1sat && dual   && ballonInt === 1  && pwr_1_1 > 0;
-      if (id === "2")   return s2on && !s2sat && pwr_2 > 0;
+      if (id === "1")   return s1on && (!dual || ballonInt === 0) && pwr_1_0 > 0;
+      if (id === "1.1") return s1on && dual && ballonInt === 1    && pwr_1_1 > 0;
+      if (id === "2")   return s2on && pwr_2 > 0;
       return false;
     };
 
