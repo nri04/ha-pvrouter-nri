@@ -10,8 +10,9 @@ from .coordinator import PvRouterCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = ["sensor", "button", "select", "number"]
-CARD_URL = "/pvrouter-nri/pvrouter-card.js"
+PLATFORMS = ["sensor", "button", "select", "number", "switch"]
+CARD_VERSION = "1.1.1"
+CARD_URL = f"/pvrouter-nri/pvrouter-card.js?v={CARD_VERSION}"
 WWW_URL = "/pvrouter-nri"
 
 
@@ -24,21 +25,23 @@ async def async_setup_entry(
     )
 
     if www_path.is_dir():
+        # Enregistrement du chemin statique
+        # (ignoré silencieusement si déjà enregistré)
         try:
             await hass.http.async_register_static_paths([
                 StaticPathConfig(
                     WWW_URL, str(www_path), cache_headers=False
                 )
             ])
-            add_extra_js_url(hass, CARD_URL)
-            _LOGGER.info(
-                "PvRouter: carte enregistree sur %s", CARD_URL
-            )
-        except Exception as err:
-            _LOGGER.warning(
-                "PvRouter: impossible d'enregistrer la carte: %s",
-                err
-            )
+        except Exception:
+            pass  # déjà enregistré, pas grave
+
+        # Toujours ré-enregistrer la carte JS avec la version courante
+        # pour forcer le navigateur à recharger le bon fichier
+        add_extra_js_url(hass, CARD_URL)
+        _LOGGER.info(
+            "PvRouter: carte enregistree sur %s", CARD_URL
+        )
 
     prefix = entry.data.get(CONF_TOPIC_PREFIX)
     coordinator = PvRouterCoordinator(hass, prefix)

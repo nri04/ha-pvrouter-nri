@@ -84,10 +84,8 @@ class PvRouterBoostButton(ButtonEntity):
 
     async def async_press(self):
         topic = TOPIC_BOOST.format(self.coordinator.prefix)
-        boost_active = (
-            self.coordinator.data.get("BOOST") is True
-            or self.coordinator.data.get("BOOST") == 1
-        )
+        boost_raw = self.coordinator.data.get("BOOST")
+        boost_active = str(boost_raw) in ("True", "true", "1")
 
         if boost_active:
             payload = "0"

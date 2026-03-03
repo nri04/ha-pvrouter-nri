@@ -33,7 +33,8 @@ class PvRouterBallonSwitch(SwitchEntity):
 
     @property
     def is_on(self):
-        return self.coordinator.data.get("BALLON") == 1
+        v = self.coordinator.data.get("BALLON")
+        return str(v) == "1"
 
     async def async_turn_on(self, **kwargs):
         # Pulse "1" → le firmware bascule vers ballon B

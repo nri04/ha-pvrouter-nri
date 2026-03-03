@@ -284,8 +284,8 @@ class PvRouterCard extends HTMLElement {
       p1: "P1", p2: "P2", load_1: "LOAD1", load_2: "LOAD2",
       load_10: "LOAD10", load_11: "LOAD11",
       status_out_1: "STATUS_OUT1", status_out_2: "STATUS_OUT2",
-      load_1_satured: "LOAD1_SATURED", load_2satured: "LOAD2SATURED",
-      ballon_actif: "BALLON", boost: "BOOST", temp_interne: "TEMP_RTC",
+      load_1_satured: "LOAD1_SATURED", load_2_satured: "LOAD2_SATURED",
+      ballon_actif: "BALLON", boost: "BOOST", temp_interne: "T_RTC",
     };
 
     const getF = (key) => {
@@ -325,49 +325,77 @@ class PvRouterCard extends HTMLElement {
       });
     };
 
-    // ── Données ──────────────────────────────────────────────────
+    // ── Données brutes ────────────────────────────────────────────
     const prod  = getF("production");
     const eff   = getF("efficiency");
-    const pin   = getF("pin");
-    const p1    = getF("p1");
-    const p2    = getF("p2");
+    const pin   = getF("pin");   // PIN : positif = import, négatif = export
     const bal   = getS("ballon_actif");
-    const s1on  = getS("status_out_1")   === "True";
-    const s2on  = getS("status_out_2")   === "True";
-    const s1sat = getS("load_1_satured") === "True";
-    const s2sat = getS("load_2_satured") === "True";
-    const load  = getF("load_10");
-    const load0 = getF("load_11");
 
-    const poutVal   = getF("pout");
-    const boostRaw  = getS("boost");  // sensor.pvrouter_boost : "True"/"False"/"1"/"0"
-    const boostOn   = boostRaw === "True" || boostRaw === "1" || boostRaw === "true";
-    const homeW     = (poutVal !== null && pin !== null && prod !== null)
-      ? Math.round(prod + pin - poutVal) : null;
+    // Accepte "True" / "true" / "1" — firmware peut envoyer n'importe lequel
+    const toBool = (v) => v === "True" || v === "true" || v === "1" || v === true;
+    const s1on  = toBool(getS("status_out_1"));
+    const s2on  = toBool(getS("status_out_2"));
+    const s1sat = toBool(getS("load_1_satured"));
+    const s2sat = toBool(getS("load_2_satured"));
 
-    const dual      = load !== null && load > 0 && load0 !== null && load0 > 0;
-    const ballonInt = bal !== null ? parseInt(bal) : 0;
-    const pout      = poutVal ?? 0;
-    const load1v    = (getF("load_1")) ?? 0;
-    const load2v    = (getF("load_2")) ?? 0;
+    const poutVal  = getF("pout");
+    const boostRaw = getS("boost");
+    const boostOn  = toBool(boostRaw);
 
-    // Logique exacte HomeViewModel.kt :
-    // puissance ballon actif = min(POUT, LOAD1)
-    // puissance sortie 2     = POUT - LOAD1 - PIN  (si POUT > LOAD1)
-    let pwr_1_0 = 0, pwr_1_1 = 0, pwr_2 = 0;
+    // ── Maison : formule exacte VB/Kotlin ─────────────────────────
+    // home_conso = PROD - POUT + PIN
+    const pout  = poutVal ?? 0;
+    const pinV  = pin     ?? 0;
+    const prodV = prod    ?? 0;
 
-    if (s1on && !s1sat) {
-      const p1out = pout <= load1v ? pout : load1v;
-      if (!dual || ballonInt === 0) pwr_1_0 = p1out;
-      else                          pwr_1_1 = p1out;
+    let homeW = null;
+    const homeState = hass.states[homeEntity];
+    if (homeState && !["unavailable","unknown","none"].includes(homeState.state)) {
+      const hv = parseFloat(homeState.state);
+      if (!isNaN(hv)) homeW = Math.round(hv);
     }
+    if (homeW === null) homeW = Math.max(0, Math.round(prodV - pout + pinV));  // coerceAtLeast(0)
 
-    if (s2on && !s2sat) {
-      if (pout > load1v) {
-        // sortie 2 = ce qui reste après sortie 1 et réseau
-        pwr_2 = Math.max(0, pout - load1v - Math.max(0, pin ?? 0));
+    // ── Puissances sorties : logique exacte VB/Kotlin ─────────────
+    const load1v    = getF("load_1") ?? 0;  // LOAD1 : max sortie 1
+    const load2v    = getF("load_2") ?? 0;  // LOAD2 : max sortie 2
+    const ballonInt = bal !== null ? parseInt(bal) : 0;
+
+    // dual = sortie "1.1" activée dans la config carte (relais bascule)
+    // Les deux ballons sont sur la même sortie physique → jamais simultanés
+    const dual = outs.some(o => o.id === "1.1" && o.enabled !== false);
+
+    let pwr_1_0 = 0;  // Ballon 0  (id "1")
+    let pwr_1_1 = 0;  // Ballon 1  (id "1.1")
+    let pwr_2   = 0;  // Sortie 2  (piscine / radiateur…)
+
+    if (!s1sat && s1on) {
+      if (pout <= load1v) {
+        // toute la puissance vers le ballon actif
+        // si pas de sortie 1.1 configurée (dual=false) → toujours pwr_1_0
+        if (!dual || ballonInt === 0) pwr_1_0 = pout;
+        else                          pwr_1_1 = pout;
+      } else {
+        // ballon actif plafonné à LOAD1
+        if (!dual || ballonInt === 0) pwr_1_0 = load1v;
+        else                          pwr_1_1 = load1v;
+        // surplus → sortie 2 : formule exacte POUT - LOAD1 - PIN
+        if (s2sat || !s2on) {
+          pwr_2 = 0;
+        } else {
+          pwr_2 = Math.max(0, pout - load1v - pinV);
+        }
       }
-      // si POUT <= LOAD1, toute la puissance va à la sortie 1, sortie 2 = 0
+    } else {
+      // sortie 1 saturée ou inactive → ballons à 0
+      pwr_1_0 = 0;
+      pwr_1_1 = 0;
+      if (s2sat || !s2on) {
+        pwr_2 = 0;
+      } else {
+        // sortie 2 seule : min(POUT, LOAD2)
+        pwr_2 = pout <= load2v ? pout : load2v;
+      }
     }
 
     pwr_1_0 = Math.max(0, pwr_1_0);
@@ -377,9 +405,9 @@ class PvRouterCard extends HTMLElement {
     const pwrFor = (id) =>
       id === "1" ? pwr_1_0 : id === "1.1" ? pwr_1_1 : id === "2" ? pwr_2 : 0;
     const onFor  = (id) => {
-      if (id === "1")   return s1on && (!dual || ballonInt === 0) && pwr_1_0 > 0;
-      if (id === "1.1") return s1on && dual && ballonInt === 1    && pwr_1_1 > 0;
-      if (id === "2")   return s2on && pwr_2 > 0;
+      if (id === "1")   return s1on && !s1sat && (!dual || ballonInt === 0) && pwr_1_0 > 0;
+      if (id === "1.1") return s1on && !s1sat && dual   && ballonInt === 1  && pwr_1_1 > 0;
+      if (id === "2")   return s2on && !s2sat && pwr_2 > 0;
       return false;
     };
 
