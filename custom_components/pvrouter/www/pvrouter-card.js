@@ -273,16 +273,17 @@ class PvRouterCard extends HTMLElement {
     const p1    = getF("p1");
     const p2    = getF("p2");
     const bal   = getS("ballon_actif");
-    const s1on  = getS("status_out_1")   === "True";
-    const s2on  = getS("status_out_2")   === "True";
-    const s1sat = getS("load_1_satured") === "True";
-    const s2sat = getS("load_2_satured") === "True";
+    const toBool = (v) => v !== null && (v.toLowerCase() === "true" || v === "1");
+    const s1on  = toBool(getS("status_out_1"));
+    const s2on  = toBool(getS("status_out_2"));
+    const s1sat = toBool(getS("load_1_satured"));
+    const s2sat = toBool(getS("load_2_satured"));
     const load  = getF("load_10");
     const load0 = getF("load_11");
 
     const poutVal   = getF("pout");
     const boostRaw  = getS("boost");  // sensor.pvrouter_boost : "True"/"False"/"1"/"0"
-    const boostOn   = boostRaw === "True" || boostRaw === "1" || boostRaw === "true";
+    const boostOn   = toBool(boostRaw);
     const homeW     = (poutVal !== null && pin !== null && prod !== null)
       ? Math.round(prod + pin - poutVal) : null;
 
@@ -292,23 +293,32 @@ class PvRouterCard extends HTMLElement {
     const load1v    = (getF("load_1")) ?? 0;
     const load2v    = (getF("load_2")) ?? 0;
 
-    // Logique exacte HomeViewModel.kt :
-    // puissance ballon actif = min(POUT, LOAD1)
-    // puissance sortie 2     = POUT - LOAD1 - PIN  (si POUT > LOAD1)
+    // Logique identique HomeViewModel.kt (les deux modèles)
     let pwr_1_0 = 0, pwr_1_1 = 0, pwr_2 = 0;
 
-    if (s1on && !s1sat) {
-      const p1out = pout <= load1v ? pout : load1v;
-      if (!dual || ballonInt === 0) pwr_1_0 = p1out;
-      else                          pwr_1_1 = p1out;
-    }
-
-    if (s2on && !s2sat) {
-      if (pout > load1v) {
-        // sortie 2 = ce qui reste après sortie 1 et réseau
-        pwr_2 = Math.max(0, pout - load1v - Math.max(0, pin ?? 0));
+    if (!s1sat && s1on) {
+      // ── Sortie 1 active ───────────────────────────────────────
+      if (pout <= load1v) {
+        // Toute la puissance va à la sortie 1
+        if (!dual || ballonInt === 0) pwr_1_0 = pout;
+        else                          pwr_1_1 = pout;
+        // Sortie 2 = 0 dans ce cas
+      } else {
+        // Sortie 1 prend LOAD1, sortie 2 prend le reste
+        if (!dual || ballonInt === 0) pwr_1_0 = load1v;
+        else                          pwr_1_1 = load1v;
+        if (s2on && !s2sat) {
+          // pool = POUT - LOAD1 - PIN  (PIN négatif = injection → augmente pool)
+          pwr_2 = Math.max(0, pout - load1v - (pin ?? 0));
+        }
       }
-      // si POUT <= LOAD1, toute la puissance va à la sortie 1, sortie 2 = 0
+    } else {
+      // ── Sortie 1 saturée ou éteinte : sortie 2 indépendante ───
+      pwr_1_0 = 0;
+      pwr_1_1 = 0;
+      if (s2on && !s2sat) {
+        pwr_2 = pout <= load2v ? pout : load2v;  // min(POUT, LOAD2)
+      }
     }
 
     pwr_1_0 = Math.max(0, pwr_1_0);
