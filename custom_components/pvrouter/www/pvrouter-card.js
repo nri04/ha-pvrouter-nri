@@ -3,7 +3,6 @@
  *
  * type: custom:pvrouter-card
  * entity_prefix: pvrouter
- * home_entity: sensor.home_conso_live
  * temp_thresholds:
  *   warm: 30        # < warm → bleu, warm-hot → orange, > hot → rouge
  *   hot:  50
@@ -81,8 +80,7 @@ class PvRouterCardEditor extends HTMLElement {
       "<div class='pvr-field'><label>Préfixe entités</label>" +
       "<input id='pvr-prefix' type='text' value='" + (c.entity_prefix || "pvrouter") + "'></div>" +
 
-      "<div class='pvr-field'><label>Entité maison</label>" +
-      "<input id='pvr-home' type='text' list='pvr-sensors' value='" + (c.home_entity || "") + "' placeholder='sensor.…'></div>" +
+      
 
       "<h4>Paliers température</h4>" +
       "<div class='row2'>" +
@@ -103,10 +101,7 @@ class PvRouterCardEditor extends HTMLElement {
       this._config.entity_prefix = e.target.value.trim();
       this._fire();
     });
-    this.querySelector("#pvr-home").addEventListener("change", e => {
-      this._config.home_entity = e.target.value.trim();
-      this._fire();
-    });
+
     this.querySelector("#pvr-warm").addEventListener("change", e => {
       this._config.temp_thresholds = this._config.temp_thresholds || {};
       this._config.temp_thresholds.warm = Number(e.target.value);
@@ -207,7 +202,6 @@ class PvRouterCard extends HTMLElement {
     const p    = this.config?.entity_prefix || "pvrouter";
     const outs = this.config?.outputs ||
       [{ id: "1", name: "Sortie 1", icon: "ballon.png", enabled: true }];
-    const homeEntity = this.config?.home_entity || "sensor.home_conso_live";
     const thr   = this.config?.temp_thresholds || {};
     const thrW  = thr.warm ?? 30;
     const thrH  = thr.hot  ?? 50;
