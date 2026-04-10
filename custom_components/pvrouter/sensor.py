@@ -5,6 +5,7 @@ from homeassistant.components.sensor import (
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import DOMAIN
 
+# Constantes de classes pour la lisibilité
 M = SensorStateClass.MEASUREMENT
 TI = SensorStateClass.TOTAL_INCREASING
 POW = SensorDeviceClass.POWER
@@ -12,21 +13,20 @@ ENE = SensorDeviceClass.ENERGY
 TMP = SensorDeviceClass.TEMPERATURE
 SIG = SensorDeviceClass.SIGNAL_STRENGTH
 
-
 async def async_setup_entry(hass, entry, async_add_entities):
+    """Configuration des capteurs via config_entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
 
+    # (Nom, Cle JSON, Unite, DeviceClass, StateClass)
     sensors_definitions = [
-        # (Nom, Cle JSON, Unite, DeviceClass, StateClass)
-
-        # --- Mesures electriques entree ---
+        # --- Mesures électriques entrée ---
         ("Vin", "VIN", "V", SensorDeviceClass.VOLTAGE, M),
         ("Cin", "CIN", "A", SensorDeviceClass.CURRENT, M),
         ("Pin", "PIN", "W", POW, M),
         ("Inject", "INJECT", "kWh", ENE, TI),
         ("Inject I", "INJECT_I", "W", POW, M),
 
-        # --- Mesures electriques sortie ---
+        # --- Mesures électriques sortie ---
         ("Cout", "COUT", "A", SensorDeviceClass.CURRENT, M),
         ("Pout", "POUT", "W", POW, M),
 
@@ -40,7 +40,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         ("Load 10", "LOAD10", "W", POW, M),
         ("Load 11", "LOAD11", "W", POW, M),
 
-        # --- Energie cumulee ---
+        # --- Énergie cumulée ---
         ("Saved Power", "SAVED_POWER", "kWh", ENE, TI),
         ("Total Power", "TOTAL_POWER", "kWh", ENE, TI),
         ("Total S", "TOT_S", "kWh", ENE, TI),
@@ -53,7 +53,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         # --- Rendement ---
         ("Efficiency", "EFF", "%", None, M),
 
-        # --- Temperatures ---
+        # --- Températures ---
         ("Temp 1", "TEMP1", "°C", TMP, M),
         ("Temp 2", "TEMP2", "°C", TMP, M),
         ("Temp Ref", "REF_T", "°C", TMP, M),
@@ -65,7 +65,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         ("Load 1 Satured", "LOAD1_SATURED", None, None, None),
         ("Load 2 Satured", "LOAD2_SATURED", None, None, None),
 
-        # --- Modes et infos systeme ---
+        # --- Modes et infos système ---
         ("Ballon Actif", "BALLON", None, None, None),
         ("Night", "NIGHT", None, None, None),
         ("Ecomax", "ECOMAX", None, None, None),
@@ -77,7 +77,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         ("Display", "DISPLAY", None, None, None),
         ("Time", "TIME", None, None, None),
 
-        # --- Infos reseau/appareil ---
+        # --- Infos réseau/appareil ---
         ("Wifi Level", "WIFI", "dBm", SIG, M),
         ("SSID", "SSID", None, None, None),
         ("MQTT Status", "MQTT", None, None, None),
@@ -94,20 +94,16 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 
 class PvRouterSensor(CoordinatorEntity, SensorEntity):
+    """Capteur standard lié au coordinateur."""
 
-    def __init__(
-        self, coordinator, name, json_key, unit,
-        d_class, s_class
-    ):
+    def __init__(self, coordinator, name, json_key, unit, d_class, s_class):
         super().__init__(coordinator)
         self._attr_name = f"PvRouter {name}"
         self._json_key = json_key
         self._attr_native_unit_of_measurement = unit
         self._attr_device_class = d_class
         self._attr_state_class = s_class
-        self._attr_unique_id = (
-            f"{coordinator.prefix}_{json_key}"
-        )
+        self._attr_unique_id = f"{coordinator.prefix}_{json_key}"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, coordinator.prefix)},
             "name": "PvRouter NRI",
@@ -117,23 +113,33 @@ class PvRouterSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def native_value(self):
-        if self.coordinator.data:
-            return self.coordinator.data.get(self._json_key)
-        return None
+        """Récupère la valeur depuis les données du coordinateur."""
+        if not self.coordinator.data:
+            return None
+        
+        val = self.coordinator.data.get(self._json_key)
+        
+        # Sécurité : Si c'est une mesure numérique, on force le cast en float
+        if self._attr_state_class in [M, TI] and val is not None:
+            try:
+                return float(val)
+            except (ValueError, TypeError):
+                return val
+        return val
 
     @property
     def available(self) -> bool:
-        return (
-            self.coordinator.last_update_success
-            and bool(self.coordinator.data)
-        )
+        """
+        Reste disponible tant qu'une première donnée a été reçue.
+        Empêche la carte de disparaître au moindre lag réseau.
+        """
+        return bool(self.coordinator.data)
 
 
 class PvRouterDataSensor(CoordinatorEntity, SensorEntity):
-    """Sensor unique exposant tout le payload JSON en attributs.
-
-    La carte JS lit depuis ce sensor pour garantir
-    que toutes les valeurs viennent du meme message MQTT.
+    """
+    Sensor technique exposant tout le JSON en attributs.
+    Indispensable pour la carte JS (données synchronisées).
     """
 
     def __init__(self, coordinator):
@@ -150,21 +156,19 @@ class PvRouterDataSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def native_value(self):
-        """Timestamp de la derniere mise a jour."""
+        """Retourne l'heure du routeur ou 'OK'."""
         if self.coordinator.data:
-            return self.coordinator.data.get("TIME", "ok")
-        return None
+            return self.coordinator.data.get("TIME", "Online")
+        return "Offline"
 
     @property
     def extra_state_attributes(self):
-        """Tout le payload JSON disponible en attributs."""
+        """Expose l'intégralité du JSON pour la carte Lovelace."""
         if self.coordinator.data:
             return dict(self.coordinator.data)
         return {}
 
     @property
     def available(self) -> bool:
-        return (
-            self.coordinator.last_update_success
-            and bool(self.coordinator.data)
-        )
+        """Garantit que le sensor est présent pour la carte JS."""
+        return True
