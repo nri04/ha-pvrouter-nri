@@ -223,23 +223,25 @@ class PvRouterCard extends HTMLElement {
       ballon_actif: "BALLON", boost: "BOOST", temp_interne: "TEMP_RTC",
     };
 
-    const getF = (key) => {
+const getF = (key) => {
       if (hasRaw) {
         const jk = KEY_MAP[key] || key.toUpperCase();
         const v = parseFloat(raw[jk]);
         if (!isNaN(v)) return v;
       }
-      const s = hass.states[`sensor.${p}_${key}`];
-      if (!s || ["unavailable","unknown","none"].includes(s.state)) return null;
-      const v = parseFloat(s.state); return isNaN(v) ? null : v;
+const s = hass.states[`sensor.${p}_${key.toLowerCase().replace(/ /g, '_')}`];
+      if (!s || ["unavailable","unknown","none"].includes(s.state)) return 0; 
+      const v = parseFloat(s.state); 
+      return isNaN(v) ? 0 : v;
     };
-    const getS = (key) => {
+const getS = (key) => {
       if (hasRaw) {
         const jk = KEY_MAP[key] || key.toUpperCase();
         if (raw[jk] !== undefined) return String(raw[jk]);
       }
-      const s = hass.states[`sensor.${p}_${key}`];
-      return s ? s.state : null;
+      const s = hass.states[`sensor.${p}_${key.toLowerCase().replace(/ /g, '_')}`];
+      if (!s || ["unavailable","unknown","none"].includes(s.state)) return "off";
+      return s.state;
     };
     const fmt = (v) => {
       if (v === null) return "—";
