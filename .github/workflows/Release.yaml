@@ -5,7 +5,7 @@ on:
     types: [published]
 
 env:
-  # Verrouille l'environnement sur Node 24 pour 2026
+
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: ZIP integration folder
-        # On zippe le dossier de l'intégration pour HACS
+    
         run: |
           cd custom_components/pvrouter
           zip pvrouter.zip -r ./
