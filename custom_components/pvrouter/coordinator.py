@@ -15,6 +15,7 @@ class PvRouterCoordinator(DataUpdateCoordinator):
         self.prefix = prefix
         self.data = {} # On initialise avec un dict vide
         self._unsubscribe = None
+        hass.async_create_task(self._async_setup())
 
     async def _async_setup(self):
         """Abonnement au topic MQTT au démarrage."""
