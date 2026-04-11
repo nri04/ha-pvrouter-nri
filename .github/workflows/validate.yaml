@@ -11,20 +11,27 @@ on:
     branches:
       - "*"
 
+env:
+  # Force l'utilisation de Node 24 pour supprimer les warnings de dépréciation
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   validate:
     runs-on: "ubuntu-latest"
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Check PEP8
-        uses: andymckay/pycodestyle-action@0.1.3
+        # Cette action est ancienne, on force son exécution sur l'environnement mis à jour
+        uses: andymckay/pycodestyle-action@v0.1.3
 
       - name: HACS validation
+        # Utiliser @main est risqué, mais nécessaire pour avoir les derniers scripts HACS
         uses: hacs/action@main
         with:
           category: integration
 
       - name: HASSFEST
+        # Hassfest est l'outil officiel de Home Assistant pour valider ton manifest.json
         uses: home-assistant/actions/hassfest@master
