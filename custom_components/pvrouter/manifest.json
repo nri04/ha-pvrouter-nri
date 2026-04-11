@@ -1,7 +1,6 @@
 {
   "domain": "pvrouter",
   "name": "PvRouter NRI",
-  "brand": true,
   "after_dependencies": [
     "mqtt"
   ],
