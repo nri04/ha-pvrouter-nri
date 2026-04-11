@@ -24,7 +24,7 @@ jobs:
 
       - name: Check PEP8
         # Cette action est ancienne, on force son exécution sur l'environnement mis à jour
-        uses: andymckay/pycodestyle-action@v0.1.3
+        uses: andymckay/pycodestyle-action@0.1.3
 
       - name: HACS validation
         # Utiliser @main est risqué, mais nécessaire pour avoir les derniers scripts HACS
