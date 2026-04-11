@@ -1,5 +1,5 @@
 /**
- * PvRouter NRI Card — v1.2
+ * PvRouter NRI Card — v1.5
  *
  * type: custom:pvrouter-card
  * entity_prefix: pvrouter
