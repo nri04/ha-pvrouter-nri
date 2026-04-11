@@ -4,9 +4,28 @@ on:
   release:
     types: [published]
 
+env:
+  # Verrouille l'environnement sur Node 24 pour 2026
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: ZIP integration folder
+        # On zippe le dossier de l'intégration pour HACS
+        run: |
+          cd custom_components/pvrouter_nri
+          zip pvrouter_nri.zip -r ./
+          
+      - name: Upload zip to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: custom_components/pvrouter_nri/pvrouter_nri.zip
+          asset_name: pvrouter_nri.zip
+          tag: ${{ github.ref }}
+          overwrite: true
