@@ -18,14 +18,14 @@ jobs:
       - name: ZIP integration folder
         # On zippe le dossier de l'intégration pour HACS
         run: |
-          cd custom_components/pvrouter_nri
-          zip pvrouter_nri.zip -r ./
+          cd custom_components/pvrouter
+          zip pvrouter.zip -r ./
           
       - name: Upload zip to release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: custom_components/pvrouter_nri/pvrouter_nri.zip
-          asset_name: pvrouter_nri.zip
+          file: custom_components/pvrouter/pvrouter.zip
+          asset_name: pvrouter.zip
           tag: ${{ github.ref }}
           overwrite: true
