@@ -3,7 +3,9 @@ name: Release
 on:
   release:
     types: [published]
-
+permissions:
+  contents: write
+  
 env:
 
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
