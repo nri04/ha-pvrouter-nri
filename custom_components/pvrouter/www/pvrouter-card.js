@@ -138,13 +138,20 @@ class PvRouterCard extends HTMLElement {
 
   getCardSize() { return 5; }
 
-  set hass(hass) {
-    // Le try/catch sauve la carte du carré rouge HA en cas d'erreur JS.
+set hass(hass) {
+    // Sécurité stricte : ignorer les appels de HA si l'objet states n'est pas encore prêt
+    if (!hass || !hass.states) return;
+
     try {
       this._hass = hass;
       if (!this.content) this._initDOM();
       this._updateValues();
     } catch (err) {
+      // PURGE : Force la reconstruction complète au prochain tick valide
+      this.content = null;
+      this.wrap = null;
+      this.boostBar = null;
+
       this.innerHTML = `
         <ha-card style="padding:16px; border:2px solid #c62828; background:#ffebee; color:#c62828; font-family:monospace;">
           <b>Erreur JS PvRouter :</b><br><br>${err.message}<br><pre style="font-size:10px;">${err.stack}</pre>
@@ -241,8 +248,13 @@ class PvRouterCard extends HTMLElement {
       ballon_actif: "BALLON", boost: "BOOST", temp_interne: "TEMP_RTC",
     };
 
-    const getF = (key) => {
-      if (hasRaw && raw[KEY_MAP[key]]) return parseFloat(raw[KEY_MAP[key]]) || 0;
+const getF = (key) => {
+      // Vérifie strictement si la clé existe dans le JSON, même si sa valeur est 0
+      if (hasRaw && raw[KEY_MAP[key]] !== undefined) {
+        const v = parseFloat(raw[KEY_MAP[key]]);
+        return isNaN(v) ? 0 : v;
+      }
+      // Fallback sur le sensor HA
       const s = states[`sensor.${p}_${key.toLowerCase().replace(/ /g, '_')}`];
       return s && !["unavailable","unknown","none"].includes(s.state) ? parseFloat(s.state) || 0 : 0;
     };
