@@ -41,9 +41,7 @@ Intégration personnalisée pour superviser et piloter les routeurs solaires **S
   <img src="https://raw.githubusercontent.com/nri04/ha-pvrouter-nri/main/docs/3.png" width="600" alt="PvRouter NRI Card">
 </p>
 
-Une application est également disponible sur le Play store :
- <a href="https://play.google.com/store/apps/details?id=fr.nri.pvrouter&pcampaignid=web_share">
-
+Une application est également disponible sur le Play store :[SmartPvRouter](https://play.google.com/store/apps/details?id=fr.nri.pvrouter&pcampaignid=web_share)
 
 
 
