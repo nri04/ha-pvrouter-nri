@@ -294,7 +294,7 @@ const getF = (key) => {
         if (!dual || ballonInt === 0) pwr_1_0 = poutVal; else pwr_1_1 = poutVal;
       } else {
         if (!dual || ballonInt === 0) pwr_1_0 = load1v; else pwr_1_1 = load1v;
-        if (s2on && !s2sat) pwr_2 = Math.max(0, poutVal - load1v - pin);
+        if (s2on && !s2sat) pwr_2 = Math.max(0, poutVal - load1v);
       }
     } else {
       if (s2on && !s2sat) pwr_2 = poutVal <= load2v ? poutVal : load2v;
