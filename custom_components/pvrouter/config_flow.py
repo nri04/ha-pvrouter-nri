@@ -1,7 +1,7 @@
-# -*- coding: utf-8 -*-
 import voluptuous as vol
 from homeassistant import config_entries
-from .const import DOMAIN, CONF_TOPIC_PREFIX
+
+from .const import CONF_TOPIC_PREFIX, DOMAIN
 
 
 class PvRouterConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):

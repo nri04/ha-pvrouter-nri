@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
-from homeassistant.components.switch import SwitchEntity
 from homeassistant.components.mqtt import async_publish
+from homeassistant.components.switch import SwitchEntity
+
 from .const import DOMAIN, TOPIC_SWITCH
 
 

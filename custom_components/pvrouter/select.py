@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
-from homeassistant.components.select import SelectEntity
 from homeassistant.components.mqtt import async_publish
+from homeassistant.components.select import SelectEntity
+
 from .const import DOMAIN, TOPIC_SETMODE
 
 # MODEINFO = mode_S2 * 10 + mode_S1

@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
-from homeassistant.components.button import (
-    ButtonEntity, ButtonDeviceClass
-)
+from homeassistant.components.button import ButtonDeviceClass, ButtonEntity
 from homeassistant.components.mqtt import async_publish
-from .const import DOMAIN, TOPIC_RESET, TOPIC_SWITCH, TOPIC_BOOST
+
+from .const import DOMAIN, TOPIC_BOOST, TOPIC_RESET, TOPIC_SWITCH
 
 
 async def async_setup_entry(hass, entry, async_add_entities):

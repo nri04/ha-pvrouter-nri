@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 DOMAIN = "pvrouter"
 CONF_TOPIC_PREFIX = "topic_prefix"
 

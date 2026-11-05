@@ -1,8 +1,9 @@
-# -*- coding: utf-8 -*-
 import json
 import logging
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+
 from homeassistant.components.mqtt import async_subscribe
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+
 from .const import DOMAIN, TOPIC_DATA
 
 _LOGGER = logging.getLogger(__name__)

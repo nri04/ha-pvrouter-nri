@@ -1,8 +1,10 @@
-# -*- coding: utf-8 -*-
 from homeassistant.components.sensor import (
-    SensorEntity, SensorDeviceClass, SensorStateClass
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
 )
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+
 from .const import DOMAIN
 
 # Constantes de classes pour la lisibilité

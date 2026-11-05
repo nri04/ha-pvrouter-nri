@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
-from homeassistant.components.number import (
-    NumberEntity, NumberMode
-)
+from homeassistant.components.number import NumberEntity, NumberMode
+
 from .const import DOMAIN
 
 

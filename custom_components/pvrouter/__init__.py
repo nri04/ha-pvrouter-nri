@@ -1,17 +1,18 @@
-# -*- coding: utf-8 -*-
 import logging
 from pathlib import Path
-from homeassistant.core import HomeAssistant
-from homeassistant.config_entries import ConfigEntry
+
 from homeassistant.components.frontend import add_extra_js_url
 from homeassistant.components.http import StaticPathConfig
-from .const import DOMAIN, CONF_TOPIC_PREFIX
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+
+from .const import CONF_TOPIC_PREFIX, DOMAIN
 from .coordinator import PvRouterCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = ["sensor", "button", "select", "number", "switch"]
-CARD_VERSION = "1.1.6"
+CARD_VERSION = "1.2.5"
 CARD_URL = f"/pvrouter-nri/pvrouter-card.js?v={CARD_VERSION}"
 WWW_URL = "/pvrouter-nri"
 
@@ -34,7 +35,8 @@ async def async_setup_entry(
                 )
             ])
         except Exception:
-            pass  # déjà enregistré, pas grave
+            # déjà enregistré, pas grave
+            _LOGGER.debug("PvRouter: chemin statique non enregistre", exc_info=True)
 
         # Toujours ré-enregistrer la carte JS avec la version courante
         # pour forcer le navigateur à recharger le bon fichier
