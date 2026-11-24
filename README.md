@@ -1,6 +1,6 @@
 # NRI PvRouter pour Home Assistant
 
-Intégration personnalisée pour superviser et piloter les routeurs solaires **Smart Pv-Router** et **CapSoLux** de smart electromation technology.
+Intégration personnalisée pour superviser et piloter les routeurs solaires **Smart Pv-Router** et **CapSoLux** de smart electromation technology, il fonctionne aussi avec le **Solarrouteur** de Solarcoop.
 [SMARTELECTROMATION](https://smartelectromation.com).
 
 <p align="left">
